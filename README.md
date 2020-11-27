@@ -14,4 +14,7 @@ Foto resistor
 If you are dying to tell me what I do wrong or eager to help out with ideas, code or argicultural skills. 
 Please email linus.holtenstam@gmail.com
 
+Please note that the Twitter coding was used using the python-twitter api on Github.
+https://github.com/bear/python-twitter
+
 
