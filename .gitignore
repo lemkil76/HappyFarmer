@@ -1,0 +1,38 @@
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Sensor data (CSV) ─────────────────────────────────────────────────────────
+data/
+*.csv
+
+# ── Timelapse images and videos ───────────────────────────────────────────────
+timelapse/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+*.mov
+
+# ── Credentials / environment variables ───────────────────────────────────────
+.env
+.env.*
+secrets.py
+config_local.py
+
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
