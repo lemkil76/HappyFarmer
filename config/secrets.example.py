@@ -19,7 +19,7 @@ from config.paths import SA_FILE, BASE_DIR
 
 # ── Google Drive ───────────────────────────────────────────────────────────────
 GOOGLE_SA_FILE      = SA_FILE        # Pekar pa BASE_DIR/service_account.json
-GOOGLE_DRIVE_FOLDER = "HappyFarmer"  # Maste delas med service account
+GOOGLE_DRIVE_FOLDER = "HaPpYFaRMer"  # Maste delas med service account
 
 # ── X / Twitter API (valfritt) ─────────────────────────────────────────────────
 # Lamna som None om du inte vill anvanda social media
