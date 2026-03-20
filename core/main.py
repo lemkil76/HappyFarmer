@@ -51,9 +51,9 @@ PUMP_ON_SECONDS  = 30 * 60
 PUMP_OFF_SECONDS = 15 * 60
 
 # Timelapse schedule
-TIMELAPSE_LOWRES_MINS    = 60
-TIMELAPSE_HIRES_HOUR     = 11
-TIMELAPSE_BUILD_DAYS     = 30
+TIMELAPSE_LOWRES_MINS     = 60
+TIMELAPSE_HIRES_HOUR      = 11
+TIMELAPSE_BUILD_DAYS      = 30
 SOCIAL_POST_EVERY_N_LOOPS = 1152   # ~4 days at 5-min intervals
 
 
@@ -75,17 +75,18 @@ def run_grow_lights(now: datetime.datetime):
 
 
 def control_climate(air_temp: float | None):
+    """Fan/heater based on air temperature thresholds."""
     if air_temp is None:
-        log.warning("No air temp - skipping climate control")
+        log.warning("No air temp reading - skipping climate control")
         return
     if air_temp < TEMP_MIN:
-        log.info(f"Temp {air_temp}C < {TEMP_MIN}C - heater ON")
+        log.info(f"Temp {air_temp}C < {TEMP_MIN}C - heater ON (30 min)")
         sensors.heater_on()
         sensors.fan_off()
         time.sleep(30 * 60)
         sensors.heater_off()
     elif air_temp > TEMP_MAX:
-        log.info(f"Temp {air_temp}C > {TEMP_MAX}C - fan ON")
+        log.info(f"Temp {air_temp}C > {TEMP_MAX}C - fan ON (30 min)")
         sensors.fan_on()
         sensors.heater_off()
         time.sleep(30 * 60)
@@ -100,6 +101,7 @@ def control_climate(air_temp: float | None):
 # ==============================================================================
 
 def store_sensor_data(data: dict):
+    """Append sensor reading to daily CSV in DATA_DIR."""
     ts  = datetime.datetime.now().isoformat()
     csv = DATA_DIR / f"sensors_{datetime.date.today()}.csv"
     if not csv.exists():
@@ -121,7 +123,8 @@ def capture_image(hires: bool = False) -> str | None:
     path = TIMELAPSE_DIR / f"{ts}_{'hires' if hires else 'lowres'}.jpg"
     try:
         subprocess.run(
-            ["fswebcam", "-r", "1920x1080" if hires else "640x480", "--no-banner", str(path)],
+            ["fswebcam", "-r", "1920x1080" if hires else "640x480",
+             "--no-banner", str(path)],
             check=True, capture_output=True,
         )
         log.info(f"Image captured: {path}")
@@ -135,7 +138,8 @@ def build_timelapse() -> str | None:
     out = TIMELAPSE_DIR / f"timelapse_{datetime.date.today()}.mp4"
     try:
         subprocess.run([
-            "ffmpeg", "-y", "-framerate", "24", "-pattern_type", "glob",
+            "ffmpeg", "-y", "-framerate", "24",
+            "-pattern_type", "glob",
             "-i", str(TIMELAPSE_DIR / "*_lowres.jpg"),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", str(out),
         ], check=True, capture_output=True)
@@ -168,10 +172,10 @@ def main():
             now = datetime.datetime.now()
             log.info(f"--- Loop {LOOP_COUNT} ---")
 
-            # Forced start (physical button - TODO: read GPIO)
+            # Forced start (physical button - TODO: read GPIO pin)
             # if gpio_button_pressed(): sensors.pump_on(); sensors.lights_on()
 
-            # 1. Read all sensors
+            # 1. Read all sensors via core/sensors.py
             data = sensors.read_all()
             log.info(
                 f"air={data['air_temp']}C hum={data['humidity']}% "
@@ -181,13 +185,13 @@ def main():
             # 2. Store to filesystem
             store_sensor_data(data)
 
-            # 3. Pump cycle
+            # 3. Pump cycle (30 min ON / 15 min OFF)
             sensors.run_pump_cycle(PUMP_ON_SECONDS, PUMP_OFF_SECONDS)
 
-            # 4. Grow lights
+            # 4. Grow lights (schedule-based)
             run_grow_lights(now)
 
-            # 5. Timelapse
+            # 5. Timelapse capture + build
             if TIMELAPSE_ENABLED:
                 if LOOP_COUNT % (TIMELAPSE_LOWRES_MINS // SLEEP_MINUTES) == 0:
                     capture_image(hires=False)
@@ -202,17 +206,17 @@ def main():
                         post_timelapse_update(video)
                     last_tl = now.date()
 
-            # 6. Social media (every ~4 days)
+            # 6. Social media post (every ~4 days)
             if SOCIAL_ENABLED and data["air_temp"] is not None:
                 if LOOP_COUNT % SOCIAL_POST_EVERY_N_LOOPS == 0:
                     post_sensor_update(
                         data["air_temp"],
                         data["water_temp"] or 0.0,
-                        data["humidity"] or 0.0,
+                        data["humidity"]   or 0.0,
                         data["lux_desc"],
                     )
 
-            # 7. Climate control
+            # 7. Climate control (fan / heater)
             control_climate(data["air_temp"])
 
             log.info(f"Loop {LOOP_COUNT} done - sleeping {SLEEP_MINUTES} min")
