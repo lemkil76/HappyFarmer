@@ -11,7 +11,7 @@
 
 NAS_USER="lemkil76"
 NAS_HOST="nas"
-NAS_PATH="/web/happyfarmer/dashboard"
+NAS_PATH="/volume1/web/happyfarmer/dashboard"
 
 echo "Hamtar senaste koden fran GitHub..."
 git pull
@@ -22,23 +22,23 @@ if [ $? -ne 0 ]; then
     fi
 
     echo ""
-    echo "Kopierar dashboard/ till ${NAS_USER}@${NAS_HOST}:${NAS_PATH}..."
+    echo "Kopierar dashboard/ till NAS..."
     echo ""
 
     rsync -avz --progress \
       --exclude='.DS_Store' \
         dashboard/ \
-          ${NAS_USER}@${NAS_HOST}:${NAS_PATH}/
+          $NAS_USER@$NAS_HOST:$NAS_PATH/
 
           if [ $? -eq 0 ]; then
             echo ""
               echo "Deploy klar!"
-                echo "Dashboard: http://${NAS_HOST}:8080/dashboard/dashboard_wireframe.html"
+                echo "Dashboard: http://$NAS_HOST:8080/dashboard/dashboard_wireframe.html"
                 else
                   echo ""
                     echo "FEL: rsync misslyckades. Kontrollera:"
-                      echo "  - NAS narbar:         ping ${NAS_HOST}"
-                        echo "  - SSH fungerar:       ssh ${NAS_USER}@${NAS_HOST}"
-                          echo "  - Skrivbehorighet:    ssh ${NAS_USER}@${NAS_HOST} touch ${NAS_PATH}/test.txt"
+                      echo "  - NAS narbar:       ping $NAS_HOST"
+                        echo "  - SSH fungerar:     ssh $NAS_USER@$NAS_HOST"
+                          echo "  - Skrivbehorighet:  ssh $NAS_USER@$NAS_HOST touch $NAS_PATH/test.txt"
                             exit 1
                             fi
