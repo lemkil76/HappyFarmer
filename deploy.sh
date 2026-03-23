@@ -4,41 +4,34 @@
 #
 # Kor fran repots rot:
 #   cd ~/Documents/Coding/HappyFarmer && sh deploy.sh
-#
-# Slipp losenord - lagg till SSH-nyckel en gang:
-#   ssh-keygen -t ed25519 -C "happyfarmer"
-#   ssh-copy-id lemkil76@nas
 
 NAS_USER="lemkil76"
 NAS_HOST="nas"
 NAS_PATH="/volume1/web/happyfarmer"
 
-echo "Hamtar senaste koden fran GitHub..."
-git pull
+# Debug - visa full sokvag
+echo "============================"
+echo "NAS_USER : $NAS_USER"
+echo "NAS_HOST : $NAS_HOST"
+echo "NAS_PATH : $NAS_PATH"
+echo "Mal      : $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/"
+echo "============================"
+echo ""
 
-if [ $? -ne 0 ]; then
-  echo "FEL: git pull misslyckades. Avbryter."
-    exit 1
-    fi
+echo "Kopierar dashboard/ till NAS..."
+echo ""
 
-    echo ""
-    echo "Kopierar dashboard/ till NAS..."
-    echo ""
+rsync -avz --progress \
+  --exclude='.DS_Store' \
+    dashboard/ \
+      $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/
 
-    rsync -avz --progress \
-      --exclude='.DS_Store' \
-        dashboard/ \
-          $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/
-
-          if [ $? -eq 0 ]; then
-            echo ""
-              echo "Deploy klar!"
-                echo "Dashboard: http://$NAS_HOST:8080/dashboard/dashboard_wireframe.html"
-                else
-                  echo ""
-                    echo "FEL: rsync misslyckades. Kontrollera:"
-                      echo "  - NAS narbar:       ping $NAS_HOST"
-                        echo "  - SSH fungerar:     ssh $NAS_USER@$NAS_HOST"
-                          echo "  - Skrivbehorighet:  ssh $NAS_USER@$NAS_HOST touch $NAS_PATH/test.txt"
-                            exit 1
-                            fi
+      if [ $? -eq 0 ]; then
+        echo ""
+          echo "Deploy klar!"
+            echo "Dashboard: http://$NAS_HOST:8080/dashboard/dashboard_wireframe.html"
+            else
+              echo ""
+                echo "FEL: rsync misslyckades."
+                  exit 1
+                  fi
