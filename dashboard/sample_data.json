@@ -1,0 +1,120 @@
+{
+  "_comment": "HappyFarmer dashboard sample data - matches dashboard/dashboard_wireframe.html",
+  "_format_version": "1.0",
+  "_generated": "2026-03-20T12:00:00",
+
+  "latest_image": {
+    "filename": "20260320_120000_lowres.jpg",
+    "captured_at": "2026-03-20T12:00:00",
+    "resolution": "640x480",
+    "path_on_nas": "/volume1/HappyFarmer/timelapse/images/20260320_120000_lowres.jpg"
+  },
+
+  "current_readings": {
+    "timestamp": "2026-03-20T12:00:00",
+    "air_temperature_c": 22.5,
+    "humidity_pct": 64.0,
+    "water_temperature_c": 20.1,
+    "ph": 6.5,
+    "lux": 8240,
+    "lux_description": "dag"
+  },
+
+  "actuator_states": {
+    "pump": "on",
+    "grow_lights": "off",
+    "fan": "off",
+    "heater": "off"
+  },
+
+  "system": {
+    "loop_count": 1024,
+    "sleep_minutes": 5,
+    "drive_sync_status": "synced",
+    "drive_sync_last": "2026-03-20T11:45:00",
+    "uptime_hours": 85.3,
+    "simulation_mode": false
+  },
+
+  "pump_schedule": {
+    "on_seconds": 1800,
+    "off_seconds": 900,
+    "next_cycle_in_minutes": 8,
+    "cycles_today": 14
+  },
+
+  "light_schedule": {
+    "on_hour": 6,
+    "off_hour": 23,
+    "light_hours": 5,
+    "today": [
+      { "start": "06:00", "end": "11:00", "status": "done",   "label": "Morgon" },
+      { "start": "11:30", "end": "12:00", "status": "active", "label": "Middag" },
+      { "start": "12:15", "end": "12:45", "status": "next",   "label": "Eftermiddag" },
+      { "start": "18:00", "end": "23:00", "status": "next",   "label": "Kvaell" }
+    ]
+  },
+
+  "social_media": {
+    "enabled": true,
+    "platform": "X / Twitter",
+    "handle": "@lemkil76",
+    "recent_posts": [
+      {
+        "id": "1902345678901234567",
+        "posted_at": "2026-03-20T08:00:00",
+        "text": "HappyFarmer daglig rapport
+Lufttemp: 22.5C | Vattentemp: 20.1C
+Luftfuktighet: 64% | Ljus: dag
+#verticalfarming #hydroponics #raspberrypi",
+        "likes": 3,
+        "retweets": 0,
+        "type": "sensor_update"
+      },
+      {
+        "id": "1895123456789012345",
+        "posted_at": "2026-02-18T08:00:00",
+        "text": "HappyFarmer timelapse - en manads tillvaxt! #verticalfarming",
+        "likes": 12,
+        "retweets": 2,
+        "type": "timelapse"
+      }
+    ],
+    "next_post_in_loops": 128
+  },
+
+  "sensor_history": {
+    "description": "Last 8 readings (newest last) for sparkline charts",
+    "interval_minutes": 5,
+    "air_temperature_c": [21.8, 22.1, 22.4, 22.0, 22.5, 22.3, 22.6, 22.5],
+    "humidity_pct":      [63.0, 63.5, 64.2, 63.8, 64.0, 64.1, 63.9, 64.0],
+    "water_temperature_c":[19.8, 20.0, 20.1, 20.0, 20.2, 20.1, 20.0, 20.1],
+    "ph":                [6.4,  6.5,  6.5,  6.4,  6.5,  6.5,  6.5,  6.5],
+    "lux":               [7800, 8000, 8100, 8050, 8240, 8200, 8180, 8240]
+  },
+
+  "thresholds": {
+    "temp_min_c": 18.0,
+    "temp_max_c": 28.0,
+    "ph_min": 5.5,
+    "ph_max": 7.5,
+    "humidity_min_pct": 50.0,
+    "humidity_max_pct": 80.0,
+    "lux_max": 12000
+  },
+
+  "daily_summary": {
+    "date": "2026-03-20",
+    "air_temp_avg_c": 22.3,
+    "air_temp_min_c": 21.5,
+    "air_temp_max_c": 23.1,
+    "water_temp_avg_c": 20.1,
+    "humidity_avg_pct": 63.8,
+    "ph_avg": 6.5,
+    "lux_avg": 7950,
+    "pump_cycles": 14,
+    "images_captured_lowres": 12,
+    "images_captured_hires": 1,
+    "social_posts": 1
+  }
+}
