@@ -19,7 +19,7 @@ echo ""
 echo "Kopierar dashboard/ till NAS via scp..."
 echo ""
 
-scp -r dashboard/* $NAS_USER@$NAS_HOST:$NAS_PATH/
+scp -O -r dashboard/* $NAS_USER@$NAS_HOST:$NAS_PATH/
 
 if [ $? -eq 0 ]; then
   echo ""
