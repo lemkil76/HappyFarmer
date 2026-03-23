@@ -7,31 +7,26 @@
 
 NAS_USER="lemkil76"
 NAS_HOST="nas"
-NAS_PATH="/volume1/web/happyfarmer"
+NAS_PATH="/volume1/web/happyfarmer/dashboard"
 
-# Debug - visa full sokvag
 echo "============================"
 echo "NAS_USER : $NAS_USER"
 echo "NAS_HOST : $NAS_HOST"
 echo "NAS_PATH : $NAS_PATH"
-echo "Mal      : $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/"
 echo "============================"
 echo ""
 
-echo "Kopierar dashboard/ till NAS..."
+echo "Kopierar dashboard/ till NAS via scp..."
 echo ""
 
-rsync -avz --progress \
-  --exclude='.DS_Store' \
-    dashboard/ \
-      $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/
+scp -r dashboard/* $NAS_USER@$NAS_HOST:$NAS_PATH/
 
-      if [ $? -eq 0 ]; then
+if [ $? -eq 0 ]; then
+  echo ""
+    echo "Deploy klar!"
+      echo "Dashboard: http://$NAS_HOST:8080/dashboard/dashboard_wireframe.html"
+      else
         echo ""
-          echo "Deploy klar!"
-            echo "Dashboard: http://$NAS_HOST:8080/dashboard/dashboard_wireframe.html"
-            else
-              echo ""
-                echo "FEL: rsync misslyckades."
-                  exit 1
-                  fi
+          echo "FEL: scp misslyckades."
+            exit 1
+            fi
