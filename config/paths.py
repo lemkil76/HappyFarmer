@@ -3,18 +3,21 @@ HappyFarmer - Central path configuration
 config/paths.py
 Revised by Claude - 2026-03-20
 
-Change BASE_DIR here to relocate the entire installation.
-Change NAS_* variables to match your Synology network path.
+Change BASE_DIR here to relocate the Pi installation.
+Change NAS_MOUNT to match where the NAS share is mounted on the Pi.
+
+The Synology virtual host "happyfarmer" points to /web/happyfarmer
+in the NAS filesystem and serves on http://server:8080/
 
 Import everywhere instead of hardcoding paths:
     from config.paths import BASE_DIR, DATA_DIR, TIMELAPSE_DIR, LOG_FILE
-    from config.paths import NAS_DASHBOARD_DIR
+    from config.paths import NAS_DASHBOARD_DIR, NAS_SAMPLE_DATA
 """
 
 from pathlib import Path
 
 # ── Pi installation root ───────────────────────────────────────────────────────
-# Change this ONE variable to relocate the entire HappyFarmer installation
+# Change this ONE variable to relocate the entire HappyFarmer installation on Pi
 BASE_DIR = Path("/home/pi/happyfarmer")
 
 # ── Pi runtime data (never committed to GitHub) ───────────────────────────────
@@ -26,21 +29,34 @@ SYNC_LOG_FILE = BASE_DIR / "sync.log"
 # ── Pi credentials ─────────────────────────────────────────────────────────────
 SA_FILE = BASE_DIR / "service_account.json"
 
-# ── NAS mount point (SMB/CIFS mounted on Pi) ──────────────────────────────────
-# Mount NAS share on Pi first - see docs/SETUP.md step 6:
-#   sudo mount -t cifs //NAS_IP/HappyFarmer /mnt/nas/happyfarmer -o username=happyfarmer,...
+# ── NAS mount point on Pi ──────────────────────────────────────────────────────
+# The Pi mounts the NAS share via SMB/CIFS (see docs/SETUP.md step 6):
 #
-# The NAS serves the dashboard on http://server:8080/
-# Files written here are immediately accessible via the web server.
-NAS_MOUNT        = Path("/mnt/nas/happyfarmer")     # where NAS is mounted on Pi
-NAS_SENSORS_DIR  = NAS_MOUNT / "sensors"            # -> http://server:8080/sensors/
-NAS_TIMELAPSE_DIR= NAS_MOUNT / "timelapse"          # -> http://server:8080/timelapse/
-NAS_LOGS_DIR     = NAS_MOUNT / "logs"               # -> http://server:8080/logs/
-NAS_DASHBOARD_DIR= NAS_MOUNT / "dashboard"          # -> http://server:8080/dashboard/
+#   sudo mount -t cifs //NAS_IP/web /mnt/nas/web \
+#     -o username=happyfarmer,password=LÖSENORD,uid=pi,gid=pi
+#
+# On the NAS, the Synology virtual host "happyfarmer" is configured to:
+#   - Document root: /web/happyfarmer
+#   - Port: 8080
+#   - URL: http://server:8080/
+#
+# NAS_MOUNT points to the virtual host root as seen from the Pi.
+NAS_MOUNT = Path("/mnt/nas/web/happyfarmer")   # = NAS:/web/happyfarmer
 
-# sample_data.json is written here so the dashboard can fetch() it:
+# ── NAS subdirectories (auto-created by cloud_sync.py) ────────────────────────
+# These map directly to URLs on the web server:
+#   NAS_SENSORS_DIR   -> http://server:8080/sensors/
+#   NAS_TIMELAPSE_DIR -> http://server:8080/timelapse/
+#   NAS_LOGS_DIR      -> http://server:8080/logs/
+#   NAS_DASHBOARD_DIR -> http://server:8080/dashboard/
+NAS_SENSORS_DIR   = NAS_MOUNT / "sensors"
+NAS_TIMELAPSE_DIR = NAS_MOUNT / "timelapse"
+NAS_LOGS_DIR      = NAS_MOUNT / "logs"
+NAS_DASHBOARD_DIR = NAS_MOUNT / "dashboard"
+
+# dashboard/sample_data.json is fetched by the browser dashboard:
 #   http://server:8080/dashboard/sample_data.json
-NAS_SAMPLE_DATA  = NAS_DASHBOARD_DIR / "sample_data.json"
+NAS_SAMPLE_DATA = NAS_DASHBOARD_DIR / "sample_data.json"
 
 # ── Code directories (for reference) ──────────────────────────────────────────
 CODE_DIR         = BASE_DIR
