@@ -11,7 +11,7 @@
 
 NAS_USER="lemkil76"
 NAS_HOST="nas"
-NAS_PATH="/volume1/web/happyfarmer/dashboard"
+NAS_PATH="/volume1/web/happyfarmer"
 
 echo "Hamtar senaste koden fran GitHub..."
 git pull
@@ -28,7 +28,7 @@ if [ $? -ne 0 ]; then
     rsync -avz --progress \
       --exclude='.DS_Store' \
         dashboard/ \
-          $NAS_USER@$NAS_HOST:$NAS_PATH/
+          $NAS_USER@$NAS_HOST:$NAS_PATH/dashboard/
 
           if [ $? -eq 0 ]; then
             echo ""
