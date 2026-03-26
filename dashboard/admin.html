@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HappyFarmer – Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0d1117;
+      --surface:    #161b22;
+      --surface2:   #1e2430;
+      --border:     #30363d;
+      --text:       #e6edf3;
+      --text-muted: #7d8590;
+      --green:      #3fb950;
+      --green-dim:  #1a3d2b;
+      --red:        #f85149;
+      --red-dim:    #3d1a1a;
+      --amber:      #d29922;
+      --amber-dim:  #3d2f0a;
+      --blue:       #58a6ff;
+      --blue-dim:   #0d2040;
+      --radius:     12px;
+      --radius-sm:  8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Inloggningsskärm ─────────────────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .login-logo {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .login-card h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .login-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: var(--blue);
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .login-error {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--red);
+      display: none;
+    }
+
+    /* ── Adminpanel ───────────────────────────────────────────────────────── */
+    #admin-panel { display: none; }
+
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-left .logo { font-size: 22px; }
+
+    .topbar-left h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .topbar-left span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── Varningsbanner ───────────────────────────────────────────────────── */
+    #manual-banner {
+      background: var(--amber-dim);
+      border-bottom: 1px solid var(--amber);
+      padding: 10px 24px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--amber);
+    }
+
+    #manual-banner i { font-size: 16px; }
+    #manual-banner strong { font-weight: 600; }
+
+    /* ── Innehåll ─────────────────────────────────────────────────────────── */
+    .content {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      margin-top: 28px;
+    }
+
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── Grid ─────────────────────────────────────────────────────────────── */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 700px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 420px) {
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Kort ─────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .card.manual-active {
+      border-color: var(--amber);
+    }
+
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .card-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-state {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .state-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .state-dot.on  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .state-dot.off { background: var(--text-muted); }
+
+    .manual-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid var(--amber);
+      display: none;
+    }
+
+    .card.manual-active .manual-badge { display: block; }
+
+    /* ── Knapp-grupp ──────────────────────────────────────────────────────── */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-group button {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .btn-group button:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    .btn-group button.active-on {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .btn-group button.active-off {
+      background: var(--red-dim);
+      border-color: var(--red);
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .btn-group button.active-auto {
+      background: var(--blue-dim);
+      border-color: var(--blue);
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    /* ── Kamerakort ───────────────────────────────────────────────────────── */
+    .camera-card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .camera-icon-wrap {
+      font-size: 40px;
+      color: var(--text-muted);
+    }
+
+    .camera-info { flex: 1; }
+    .camera-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .camera-info p  { font-size: 12px; color: var(--text-muted); }
+
+    #camera-result {
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    /* ── Schemakort ───────────────────────────────────────────────────────── */
+    .schedule-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .schedule-header i {
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    .schedule-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .field-row {
+      margin-bottom: 14px;
+    }
+
+    .field-row label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .field-row .input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .field-row input[type="number"] {
+      width: 80px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field-row input[type="number"]:focus {
+      border-color: var(--blue);
+    }
+
+    .field-row .unit {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Knappar ──────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .btn-save {
+      background: var(--blue-dim);
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    .btn-save:hover { opacity: 0.8; }
+
+    .btn-auto {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 600;
+      padding: 12px 22px;
+      font-size: 14px;
+    }
+
+    .btn-auto:hover { opacity: 0.85; }
+
+    .btn-logout {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Auto-kort ────────────────────────────────────────────────────────── */
+    .auto-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .auto-card-left i { font-size: 24px; color: var(--green); margin-bottom: 6px; }
+    .auto-card-left h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .auto-card-left p { font-size: 12px; color: var(--text-muted); }
+
+    /* ── Statusmeddelanden ────────────────────────────────────────────────── */
+    .save-result {
+      font-size: 12px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .ok-msg  { color: var(--green); }
+    .err-msg { color: var(--red); }
+
+    /* ── Modal ────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--amber);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .modal-icon { font-size: 36px; text-align: center; margin-bottom: 12px; }
+
+    .modal h2 {
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 10px;
+      color: var(--amber);
+    }
+
+    .modal p {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.6;
+      margin-bottom: 22px;
+    }
+
+    .modal p strong { color: var(--text); }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+
+    .btn-confirm {
+      flex: 1;
+      padding: 10px;
+      background: var(--amber-dim);
+      border: 1px solid var(--amber);
+      border-radius: var(--radius-sm);
+      color: var(--amber);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-confirm:hover { opacity: 0.85; }
+
+    /* ── Snabbrespons-toast ───────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: var(--text);
+      transition: transform 0.3s ease;
+      z-index: 200;
+      white-space: nowrap;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.ok   { border-color: var(--green); color: var(--green); }
+    #toast.err  { border-color: var(--red);   color: var(--red);  }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     INLOGGNINGSSKÄRM
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🌿</div>
+    <h1>HappyFarmer Admin</h1>
+    <p>Ange lösenord för att fortsätta</p>
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="input-group">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="pw-input" placeholder="Lösenord" autocomplete="current-password" autofocus>
+      </div>
+      <button type="submit" class="btn-primary" id="login-btn">
+        <i class="fa-solid fa-arrow-right-to-bracket"></i> &nbsp;Logga in
+      </button>
+    </form>
+    <p class="login-error" id="login-error">
+      <i class="fa-solid fa-circle-exclamation"></i> &nbsp;Fel lösenord – försök igen
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     ADMINPANEL
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="admin-panel">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo">🌿</span>
+      <div>
+        <h1>HappyFarmer Admin</h1>
+        <span id="status-line">Ansluter…</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="http://nas:8080/dashboard/dashboard_wireframe.html"
+         style="text-decoration:none">
+        <button class="btn btn-logout">
+          <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </button>
+      </a>
+      <button class="btn btn-logout" onclick="doLogout()">
+        <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+      </button>
+    </div>
+  </div>
+
+  <!-- Manuell-banner -->
+  <div id="manual-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <span>
+      <strong>Manuell styrning aktiv för:</strong>
+      <span id="manual-list">–</span>
+      &nbsp;— Det automatiska schemat är pausat för dessa enheter.
+    </span>
+  </div>
+
+  <!-- Innehåll -->
+  <div class="content">
+
+    <!-- ── Reläkontroll ──────────────────────────────────────────────────── -->
+    <div class="section-title"><i class="fa-solid fa-toggle-on"></i> &nbsp;Reläkontroll</div>
+    <div class="grid-4" id="relay-grid">
+
+      <!-- Vattenpump -->
+      <div class="card" id="card-pump">
+        <span class="manual-badge"><i class="fa-solid fa-hand"></i> Manuell</span>
+        <div class="card-icon">💧</div>
+        <div class="card-name">Vattenpump</div>
+        <div class="card-state">
+          <span class="state-dot off" id="dot-pump"></span>
+          <span id="state-label-pump">Okänd</span>
+        </div>
+        <div class="btn-group">
+          <button onclick="confirmRelay('pump','on')"   id="btn-pump-on">
+            <i class="fa-solid fa-power-off"></i> PÅ
+          </button>
+          <button onclick="confirmRelay('pump','off')"  id="btn-pump-off">
+            <i class="fa-solid fa-xmark"></i> AV
+          </button>
+          <button onclick="setRelay('pump','auto')"     id="btn-pump-auto">
+            <i class="fa-solid fa-rotate"></i> AUTO
+          </button>
+        </div>
+      </div>
+
+      <!-- Odlingslampa -->
+      <div class="card" id="card-lights">
+        <span class="manual-badge"><i class="fa-solid fa-hand"></i> Manuell</span>
+        <div class="card-icon">☀️</div>
+        <div class="card-name">Odlingslampa</div>
+        <div class="card-state">
+          <span class="state-dot off" id="dot-lights"></span>
+          <span id="state-label-lights">Okänd</span>
+        </div>
+        <div class="btn-group">
+          <button onclick="confirmRelay('lights','on')"  id="btn-lights-on">
+            <i class="fa-solid fa-power-off"></i> PÅ
+          </button>
+          <button onclick="confirmRelay('lights','off')" id="btn-lights-off">
+            <i class="fa-solid fa-xmark"></i> AV
+          </button>
+          <button onclick="setRelay('lights','auto')"    id="btn-lights-auto">
+            <i class="fa-solid fa-rotate"></i> AUTO
+          </button>
+        </div>
+      </div>
+
+      <!-- Fläkt -->
+      <div class="card" id="card-fan">
+        <span class="manual-badge"><i class="fa-solid fa-hand"></i> Manuell</span>
+        <div class="card-icon">💨</div>
+        <div class="card-name">Fläkt</div>
+        <div class="card-state">
+          <span class="state-dot off" id="dot-fan"></span>
+          <span id="state-label-fan">Okänd</span>
+        </div>
+        <div class="btn-group">
+          <button onclick="confirmRelay('fan','on')"   id="btn-fan-on">
+            <i class="fa-solid fa-power-off"></i> PÅ
+          </button>
+          <button onclick="confirmRelay('fan','off')"  id="btn-fan-off">
+            <i class="fa-solid fa-xmark"></i> AV
+          </button>
+          <button onclick="setRelay('fan','auto')"     id="btn-fan-auto">
+            <i class="fa-solid fa-rotate"></i> AUTO
+          </button>
+        </div>
+      </div>
+
+      <!-- Vattenvärmare -->
+      <div class="card" id="card-heater">
+        <span class="manual-badge"><i class="fa-solid fa-hand"></i> Manuell</span>
+        <div class="card-icon">🔥</div>
+        <div class="card-name">Vattenvärmare</div>
+        <div class="card-state">
+          <span class="state-dot off" id="dot-heater"></span>
+          <span id="state-label-heater">Okänd</span>
+        </div>
+        <div class="btn-group">
+          <button onclick="confirmRelay('heater','on')"   id="btn-heater-on">
+            <i class="fa-solid fa-power-off"></i> PÅ
+          </button>
+          <button onclick="confirmRelay('heater','off')"  id="btn-heater-off">
+            <i class="fa-solid fa-xmark"></i> AV
+          </button>
+          <button onclick="setRelay('heater','auto')"     id="btn-heater-auto">
+            <i class="fa-solid fa-rotate"></i> AUTO
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /relay-grid -->
+
+    <!-- ── Automatisk styrning ───────────────────────────────────────────── -->
+    <div class="section-title" style="margin-top:24px">
+      <i class="fa-solid fa-robot"></i> &nbsp;Automatisk styrning
+    </div>
+    <div class="card">
+      <div class="auto-card">
+        <div class="auto-card-left">
+          <i class="fa-solid fa-rotate"></i>
+          <h3>Återgå till automatisk styrning</h3>
+          <p>Rensar alla manuella overrides. Alla reläer styrs återigen av schemat.</p>
+        </div>
+        <button class="btn btn-auto" onclick="resumeAuto()">
+          <i class="fa-solid fa-rotate"></i> &nbsp;Aktivera automatik
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Kamera ────────────────────────────────────────────────────────── -->
+    <div class="section-title"><i class="fa-solid fa-camera"></i> &nbsp;Kamera</div>
+    <div class="card">
+      <div class="camera-card">
+        <div class="camera-icon-wrap">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <div class="camera-info">
+          <h3>Ta bild nu</h3>
+          <p>Tar en bild med webbkameran och skickar den till dashboarden (640×480).</p>
+          <div id="camera-result"></div>
+        </div>
+        <button class="btn btn-save" id="camera-btn" onclick="triggerCamera()">
+          <i class="fa-solid fa-camera"></i> &nbsp;Ta bild
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Schema ────────────────────────────────────────────────────────── -->
+    <div class="section-title"><i class="fa-solid fa-clock"></i> &nbsp;Schema</div>
+    <div class="grid-2">
+
+      <!-- Pump & Luftning -->
+      <div class="card">
+        <div class="schedule-header">
+          <i class="fa-solid fa-droplet"></i>
+          <h3>Pump &amp; Luftning</h3>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-solid fa-play"></i> &nbsp;Pumptid</label>
+          <div class="input-wrap">
+            <input type="number" id="pump-on-min" min="1" max="120" step="1" value="30">
+            <span class="unit">minuter</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-solid fa-wind"></i> &nbsp;Luftningstid (pump av)</label>
+          <div class="input-wrap">
+            <input type="number" id="pump-off-min" min="1" max="60" step="1" value="15">
+            <span class="unit">minuter</span>
+          </div>
+        </div>
+        <button class="btn btn-save" onclick="saveSchedulePump()">
+          <i class="fa-solid fa-floppy-disk"></i> &nbsp;Spara
+        </button>
+        <div class="save-result" id="pump-result"></div>
+      </div>
+
+      <!-- Belysning -->
+      <div class="card">
+        <div class="schedule-header">
+          <i class="fa-solid fa-sun"></i>
+          <h3>Belysningscykel</h3>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-solid fa-sunrise"></i> &nbsp;Ljus på (timme)</label>
+          <div class="input-wrap">
+            <input type="number" id="light-on-h" min="0" max="22" step="1" value="6">
+            <span class="unit">:00</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-solid fa-moon"></i> &nbsp;Ljus av (timme)</label>
+          <div class="input-wrap">
+            <input type="number" id="light-off-h" min="1" max="24" step="1" value="23">
+            <span class="unit">:00</span>
+          </div>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-regular fa-clock"></i> &nbsp;Ljustimmar per cykel</label>
+          <div class="input-wrap">
+            <input type="number" id="light-hours" min="1" max="18" step="1" value="5">
+            <span class="unit">timmar</span>
+          </div>
+        </div>
+        <button class="btn btn-save" onclick="saveScheduleLight()">
+          <i class="fa-solid fa-floppy-disk"></i> &nbsp;Spara
+        </button>
+        <div class="save-result" id="light-result"></div>
+      </div>
+
+    </div><!-- /grid-2 -->
+  </div><!-- /content -->
+</div><!-- /admin-panel -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     BEKRÄFTELSEM MODAL
+══════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-icon">⚠️</div>
+    <h2>Manuell styrning</h2>
+    <p id="modal-text">Du håller på att aktivera manuell styrning.<br>
+    <strong>Det automatiska schemat pausas för denna enhet.</strong><br><br>
+    Bekräfta för att fortsätta.</p>
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeModal()">
+        <i class="fa-solid fa-xmark"></i> &nbsp;Avbryt
+      </button>
+      <button class="btn-confirm" id="modal-confirm" onclick="doConfirm()">
+        <i class="fa-solid fa-check"></i> &nbsp;Bekräfta
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════════════════════════ -->
+<script>
+  // ── Token-hantering ────────────────────────────────────────────────────────
+  const TOKEN_KEY  = 'hf_admin_token';
+  let authToken    = sessionStorage.getItem(TOKEN_KEY) || '';
+  let pollTimer    = null;
+
+  // Modal state
+  let pendingRelay = null;
+  let pendingState = null;
+
+  // Relay-namn (svenska)
+  const RELAY_NAMES = {
+    pump:   'Vattenpump',
+    lights: 'Odlingslampa',
+    fan:    'Fläkt',
+    heater: 'Vattenvärmare',
+  };
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  (function init() {
+    if (authToken) {
+      showPanel();
+      fetchStatus();
+    }
+    // Tillåt Enter-tangent i lösenordsfältet
+    document.getElementById('pw-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin(e);
+    });
+  })();
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  async function doLogin(e) {
+    e.preventDefault();
+    const pw  = document.getElementById('pw-input').value;
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    if (!pw) return;
+    btn.disabled = true;
+    btn.textContent = 'Loggar in…';
+    err.style.display = 'none';
+    try {
+      const res  = await api('POST', '/api/login', { password: pw }, false);
+      const data = await res.json();
+      if (res.ok) {
+        authToken = data.token;
+        sessionStorage.setItem(TOKEN_KEY, authToken);
+        showPanel();
+        fetchStatus();
+      } else {
+        err.style.display = 'block';
+        document.getElementById('pw-input').value = '';
+        document.getElementById('pw-input').focus();
+      }
+    } catch {
+      err.textContent = '⚠ Kunde inte ansluta till Pi. Kontrollera att main.py körs.';
+      err.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket"></i> &nbsp;Logga in';
+  }
+
+  async function doLogout() {
+    await api('POST', '/api/logout').catch(() => {});
+    sessionStorage.removeItem(TOKEN_KEY);
+    authToken = '';
+    clearInterval(pollTimer);
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('pw-input').value = '';
+  }
+
+  // ── Visa/dölj ──────────────────────────────────────────────────────────────
+  function showPanel() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display  = 'block';
+    pollTimer = setInterval(fetchStatus, 5000);
+  }
+
+  // ── Status-poll ────────────────────────────────────────────────────────────
+  async function fetchStatus() {
+    try {
+      const res  = await api('GET', '/api/status');
+      if (res.status === 401) { doLogout(); return; }
+      const data = await res.json();
+      updateUI(data);
+    } catch {
+      document.getElementById('status-line').textContent = '⚠ Ingen kontakt med Pi';
+    }
+  }
+
+  function updateUI(d) {
+    const now = new Date().toLocaleTimeString('sv-SE');
+    document.getElementById('status-line').textContent = `Uppdaterad ${now}`;
+
+    // Uppdatera varje relä
+    for (const name of ['pump', 'lights', 'fan', 'heater']) {
+      const physical  = d.relays[name];
+      const override  = d.manual[name];   // "on" | "off" | null
+      const card      = document.getElementById(`card-${name}`);
+      const dot       = document.getElementById(`dot-${name}`);
+      const label     = document.getElementById(`state-label-${name}`);
+
+      // Fysisk status-punkt
+      dot.className = 'state-dot ' + (physical ? 'on' : 'off');
+      label.textContent = physical ? 'PÅ' : 'AV';
+
+      // Manuell badge + kortram
+      if (override !== null && override !== undefined) {
+        card.classList.add('manual-active');
+      } else {
+        card.classList.remove('manual-active');
+      }
+
+      // Knapplägen
+      setButtonActive(name, override === 'on' ? 'on' : override === 'off' ? 'off' : 'auto');
+    }
+
+    // Schemavaluer (fyll bara om användaren inte håller på att redigera)
+    if (document.activeElement.tagName !== 'INPUT') {
+      const s = d.schedule;
+      setIfUnfocused('pump-on-min',  Math.round(s.pump_on_seconds  / 60));
+      setIfUnfocused('pump-off-min', Math.round(s.pump_off_seconds / 60));
+      setIfUnfocused('light-on-h',   s.light_on_hour);
+      setIfUnfocused('light-off-h',  s.light_off_hour);
+      setIfUnfocused('light-hours',  s.light_hours);
+    }
+
+    // Manuell-banner
+    const actives = Object.entries(d.manual)
+      .filter(([, v]) => v !== null)
+      .map(([k]) => RELAY_NAMES[k]);
+    const banner = document.getElementById('manual-banner');
+    if (actives.length > 0) {
+      document.getElementById('manual-list').textContent = actives.join(', ');
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  function setIfUnfocused(id, val) {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el) el.value = val;
+  }
+
+  function setButtonActive(relay, mode) {
+    for (const m of ['on', 'off', 'auto']) {
+      const btn = document.getElementById(`btn-${relay}-${m}`);
+      if (!btn) continue;
+      btn.className = '';
+      if (m === mode) btn.className = `active-${m}`;
+    }
+  }
+
+  // ── Reläkontroll ───────────────────────────────────────────────────────────
+  function confirmRelay(name, state) {
+    // AUTO kräver ingen bekräftelse – hanteras direkt
+    pendingRelay = name;
+    pendingState = state;
+    document.getElementById('modal-text').innerHTML =
+      `Du håller på att sätta <strong>${RELAY_NAMES[name]}</strong> till <strong>${state === 'on' ? 'PÅ' : 'AV'}</strong> manuellt.<br><br>` +
+      `<strong>Det automatiska schemat pausas för denna enhet</strong> tills du återgår till automatisk styrning.`;
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    pendingRelay = null;
+    pendingState = null;
+  }
+
+  async function doConfirm() {
+    closeModal();
+    if (pendingRelay && pendingState) {
+      await setRelay(pendingRelay, pendingState);
+    }
+  }
+
+  async function setRelay(name, state) {
+    try {
+      const res = await api('POST', `/api/relay/${name}`, { state });
+      if (res.ok) {
+        const label = state === 'auto' ? 'Automatisk styrning aktiverad' :
+                      `${RELAY_NAMES[name]} satt till ${state === 'on' ? 'PÅ' : 'AV'}`;
+        showToast(label, 'ok');
+        fetchStatus();
+      } else {
+        const d = await res.json();
+        showToast(d.error || 'Fel', 'err');
+      }
+    } catch {
+      showToast('Kunde inte nå Pi', 'err');
+    }
+  }
+
+  async function resumeAuto() {
+    try {
+      const res = await api('POST', '/api/auto');
+      if (res.ok) {
+        showToast('Automatisk styrning aktiverad för alla reläer', 'ok');
+        fetchStatus();
+      }
+    } catch {
+      showToast('Kunde inte nå Pi', 'err');
+    }
+  }
+
+  // ── Kamera ─────────────────────────────────────────────────────────────────
+  async function triggerCamera() {
+    const btn = document.getElementById('camera-btn');
+    const res_el = document.getElementById('camera-result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Tar bild…';
+    res_el.style.display = 'none';
+    try {
+      const res  = await api('POST', '/api/camera');
+      const data = await res.json();
+      res_el.style.display = 'block';
+      if (res.ok) {
+        res_el.className = 'save-result ok-msg';
+        res_el.innerHTML = '<i class="fa-solid fa-check"></i> Bild tagen och sparad!';
+        showToast('Bild tagen!', 'ok');
+      } else {
+        res_el.className = 'save-result err-msg';
+        res_el.innerHTML = `<i class="fa-solid fa-xmark"></i> ${data.error}`;
+      }
+    } catch {
+      res_el.style.display = 'block';
+      res_el.className = 'save-result err-msg';
+      res_el.textContent = 'Kunde inte nå Pi';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-camera"></i> &nbsp;Ta bild';
+  }
+
+  // ── Schema ─────────────────────────────────────────────────────────────────
+  async function saveSchedulePump() {
+    const onMin  = parseInt(document.getElementById('pump-on-min').value)  || 0;
+    const offMin = parseInt(document.getElementById('pump-off-min').value) || 0;
+    await saveSchedule(
+      { pump_on_seconds: onMin * 60, pump_off_seconds: offMin * 60 },
+      'pump-result'
+    );
+  }
+
+  async function saveScheduleLight() {
+    const onH  = parseInt(document.getElementById('light-on-h').value)  || 0;
+    const offH = parseInt(document.getElementById('light-off-h').value) || 0;
+    const hrs  = parseInt(document.getElementById('light-hours').value) || 0;
+    await saveSchedule(
+      { light_on_hour: onH, light_off_hour: offH, light_hours: hrs },
+      'light-result'
+    );
+  }
+
+  async function saveSchedule(payload, resultId) {
+    const el = document.getElementById(resultId);
+    el.style.display = 'none';
+    try {
+      const res  = await api('POST', '/api/schedule', payload);
+      const data = await res.json();
+      el.style.display = 'block';
+      if (res.ok) {
+        el.className = 'save-result ok-msg';
+        el.innerHTML = '<i class="fa-solid fa-check"></i> &nbsp;Sparat!';
+        showToast('Schema uppdaterat', 'ok');
+      } else {
+        el.className = 'save-result err-msg';
+        el.innerHTML = `<i class="fa-solid fa-xmark"></i> &nbsp;${data.error}`;
+      }
+    } catch {
+      el.style.display = 'block';
+      el.className = 'save-result err-msg';
+      el.textContent = 'Kunde inte nå Pi';
+    }
+  }
+
+  // ── API-hjälpare ───────────────────────────────────────────────────────────
+  function api(method, path, body, useAuth = true) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+    };
+    if (useAuth && authToken) opts.headers['X-Auth-Token'] = authToken;
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(path, opts);
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  let toastTimer = null;
+  function showToast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  }
+
+  // Stäng modal vid klick utanför
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

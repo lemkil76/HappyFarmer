@@ -122,11 +122,18 @@ function render(d) {
     <!-- Header -->
     <div class="header">
       <h1>HappyFarmer — live overview</h1>
-      <span style="font-size:12px;color:#888">
-        Uppdaterad: ${formatDate(r.timestamp)}
-        &nbsp;|&nbsp; Loop #${sys.loop_count.toLocaleString('sv-SE')}
-        &nbsp;|&nbsp; <span style="color:${sys.drive_sync_status==='synced'?'#1D9E75':'#E24B4A'}">${sys.drive_sync_status === 'synced' ? '✓ Synkad' : '⚠ Ej synkad'}</span>
-      </span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#888">
+          Uppdaterad: ${formatDate(r.timestamp)}
+          &nbsp;|&nbsp; Loop #${sys.loop_count.toLocaleString('sv-SE')}
+          &nbsp;|&nbsp; <span style="color:${sys.drive_sync_status==='synced'?'#1D9E75':'#E24B4A'}">${sys.drive_sync_status === 'synced' ? '✓ Synkad' : '⚠ Ej synkad'}</span>
+        </span>
+        <a href="http://192.168.1.128:5000/admin" target="_blank" style="text-decoration:none">
+          <button style="font-size:12px;padding:5px 12px;cursor:pointer;border:0.5px solid #378ADD;border-radius:8px;background:#e8f2fd;color:#1a5fa8;font-weight:500;display:flex;align-items:center;gap:5px">
+            ⚙️ Admin
+          </button>
+        </a>
+      </div>
     </div>
 
     <!-- Senaste bild -->

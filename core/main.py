@@ -11,7 +11,7 @@ import subprocess
 import shutil
 
 from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT
-from core import sensors
+from core import sensors, api
 from integrations import db
 from integrations.social_media import post_sensor_update, post_timelapse_update, verify_credentials
 
@@ -104,38 +104,55 @@ def store_sensor_data(data: dict):
     )
 
 
-def run_grow_lights(now: datetime.datetime):
-    if LIGHT_ON_HOUR <= now.hour < LIGHT_OFF_HOUR:
+def run_grow_lights(now: datetime.datetime, schedule: dict):
+    """Styr odlingslampan. Hoppar över om manuell override är aktiv."""
+    if api.get_override("lights") is not None:
+        log.info("Grow lights: manuell override aktiv – hoppar över automatik")
+        return
+    on_h  = schedule.get("light_on_hour",  LIGHT_ON_HOUR)
+    off_h = schedule.get("light_off_hour", LIGHT_OFF_HOUR)
+    hrs   = schedule.get("light_hours",    LIGHT_HOURS)
+    if on_h <= now.hour < off_h:
         sensors.lights_on()
         db.log_actuator_event("grow_lights", "on", "schedule")
-        time.sleep(LIGHT_HOURS * 3600)
+        time.sleep(hrs * 3600)
         sensors.lights_off()
         db.log_actuator_event("grow_lights", "off", "schedule",
-                              duration_sec=LIGHT_HOURS * 3600)
+                              duration_sec=hrs * 3600)
     else:
         sensors.lights_off()
 
 
 def control_climate(air_temp):
+    """Styr fläkt/värmare. Hoppar över enheter med manuell override."""
     if air_temp is None:
         return
+    fan_ov    = api.get_override("fan")
+    heater_ov = api.get_override("heater")
+
     if air_temp < TEMP_MIN:
-        sensors.heater_on()
-        sensors.fan_off()
-        db.log_actuator_event("heater", "on", "climate")
-        time.sleep(30 * 60)
-        sensors.heater_off()
-        db.log_actuator_event("heater", "off", "climate", duration_sec=1800)
+        if heater_ov is None:
+            sensors.heater_on()
+            db.log_actuator_event("heater", "on", "climate")
+        if fan_ov is None:
+            sensors.fan_off()
+        if heater_ov is None:
+            time.sleep(30 * 60)
+            sensors.heater_off()
+            db.log_actuator_event("heater", "off", "climate", duration_sec=1800)
     elif air_temp > TEMP_MAX:
-        sensors.fan_on()
-        sensors.heater_off()
-        db.log_actuator_event("fan", "on", "climate")
-        time.sleep(30 * 60)
-        sensors.fan_off()
-        db.log_actuator_event("fan", "off", "climate", duration_sec=1800)
+        if fan_ov is None:
+            sensors.fan_on()
+            db.log_actuator_event("fan", "on", "climate")
+        if heater_ov is None:
+            sensors.heater_off()
+        if fan_ov is None:
+            time.sleep(30 * 60)
+            sensors.fan_off()
+            db.log_actuator_event("fan", "off", "climate", duration_sec=1800)
     else:
-        sensors.fan_off()
-        sensors.heater_off()
+        if fan_ov    is None: sensors.fan_off()
+        if heater_ov is None: sensors.heater_off()
 
 
 def main():
@@ -143,6 +160,8 @@ def main():
     log.info("=== HappyFarmer starting ===")
     db.log_system_event("HappyFarmer starting", "info", "main")
     sensors.setup()
+    api.set_camera_callback(capture_image)
+    api.start()
     if not db.test_connection():
         log.warning("DB ej tillganglig - fortsatter med CSV")
     last_hires = None
@@ -162,13 +181,20 @@ def main():
                     light_level=data["lux_desc"],
                 )
                 db.log_social_post("sensor_update", f"Loop {LOOP_COUNT}")
-            sensors.pump_on()
-            db.log_actuator_event("pump", "on", "schedule")
-            time.sleep(PUMP_ON_SECONDS)
-            sensors.pump_off()
-            db.log_actuator_event("pump", "off", "schedule", duration_sec=PUMP_ON_SECONDS)
-            time.sleep(PUMP_OFF_SECONDS)
-            run_grow_lights(now)
+            schedule = api.get_schedule()
+            pump_ov = api.get_override("pump")
+            if pump_ov is None:
+                on_s  = schedule.get("pump_on_seconds",  PUMP_ON_SECONDS)
+                off_s = schedule.get("pump_off_seconds", PUMP_OFF_SECONDS)
+                sensors.pump_on()
+                db.log_actuator_event("pump", "on", "schedule")
+                time.sleep(on_s)
+                sensors.pump_off()
+                db.log_actuator_event("pump", "off", "schedule", duration_sec=on_s)
+                time.sleep(off_s)
+            else:
+                log.info(f"Pump: manuell override aktiv ({pump_ov}) – hoppar över automatik")
+            run_grow_lights(now, schedule)
             if TIMELAPSE_ENABLED:
                 if LOOP_COUNT % (TIMELAPSE_LOWRES_MINS // SLEEP_MINUTES) == 0:
                     capture_image(hires=False)
