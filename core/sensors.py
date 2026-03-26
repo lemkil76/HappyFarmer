@@ -31,7 +31,8 @@ log = logging.getLogger("happyfarmer.sensors")
 # ── Try importing hardware libs ────────────────────────────────────────────────
 try:
     import RPi.GPIO as GPIO
-    import adafruit_dht     
+    import adafruit_dht
+    import board
     HW_AVAILABLE = True
 except ImportError:
     log.warning("RPi hardware libs not found - sensors running in simulation mode")
@@ -113,7 +114,9 @@ def read_air_temperature() -> float | None:
     if not HW_AVAILABLE:
         return 22.5  # simulation
 
-    _, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, PIN_DHT22)
+    dht_device = adafruit_dht.DHT11(board.D17)
+    temperature = dht_device.temperature
+    dht_device.exit()
     if temperature is None:
         log.error("DHT22: temperature read failed")
         return None
@@ -128,7 +131,9 @@ def read_humidity() -> float | None:
     if not HW_AVAILABLE:
         return 64.0  # simulation
 
-    humidity, _ = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, PIN_DHT22)
+    dht_device = adafruit_dht.DHT11(board.D17)
+    humidity = dht_device.humidity
+    dht_device.exit()
     if humidity is None:
         log.error("DHT22: humidity read failed")
         return None
@@ -144,9 +149,16 @@ def read_air_climate() -> tuple[float | None, float | None]:
     if not HW_AVAILABLE:
         return 22.5, 64.0  # simulation
 
-    humidity, temperature = Adafruit_DHT.read_retry(Adafruit_DHT.DHT22, PIN_DHT22)
+    try:
+        dht_device = adafruit_dht.DHT11(board.D17)
+        temperature = dht_device.temperature
+        humidity = dht_device.humidity
+        dht_device.exit()
+    except Exception as e:
+        log.error(f"DHT11 combined read failed: {e}")
+        return None, None
     if temperature is None or humidity is None:
-        log.error("DHT22: combined read failed")
+        log.error("DHT11: combined read returned None")
         return None, None
     return round(temperature, 1), round(humidity, 1)
 
