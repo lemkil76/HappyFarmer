@@ -136,6 +136,25 @@ CREATE OR REPLACE VIEW dagssammanfattning AS
   ORDER BY datum DESC;
 
 -- ============================================================
+-- system_updates
+-- Loggar apt-uppdateringar pa Pi:n
+-- ============================================================
+CREATE TABLE IF NOT EXISTS system_updates (
+    id                INT UNSIGNED                              NOT NULL AUTO_INCREMENT,
+    updated_at        DATETIME                                  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status            ENUM('success','failed','no_updates')     NOT NULL,
+    packages_updated  INT UNSIGNED                              DEFAULT 0,
+    packages_list     TEXT                                      DEFAULT NULL,
+    os_version        VARCHAR(100)                              DEFAULT NULL,
+    kernel_version    VARCHAR(50)                               DEFAULT NULL,
+    python_version    VARCHAR(20)                               DEFAULT NULL,
+    duration_sec      INT UNSIGNED                              DEFAULT NULL,
+    notes             TEXT                                      DEFAULT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_updated_at (updated_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ============================================================
 -- Testdata
 -- ============================================================
 INSERT INTO sensor_readings

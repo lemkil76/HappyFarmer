@@ -393,6 +393,75 @@ def build_sample_data_from_db(actuator_states=None, system_info=None) -> dict:
     }
 
 
+def log_system_update(
+    status: str,
+    packages_updated: int = 0,
+    packages_list: str = None,
+    os_version: str = None,
+    kernel_version: str = None,
+    python_version: str = None,
+    duration_sec: int = None,
+    notes: str = None,
+) -> bool:
+    """Loggar ett apt-uppdateringsresultat till system_updates-tabellen."""
+    conn = get_connection()
+    if not conn:
+        return False
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO system_updates "
+            "(status, packages_updated, packages_list, os_version, "
+            " kernel_version, python_version, duration_sec, notes) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+            (status, packages_updated, packages_list, os_version,
+             kernel_version, python_version, duration_sec, notes),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        log.error(f"DB system_update insert: {e}")
+        return False
+    finally:
+        conn.close()
+
+
+def get_last_system_update() -> Optional[dict]:
+    """Returnerar den senaste system_updates-raden."""
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(
+            "SELECT * FROM system_updates ORDER BY updated_at DESC LIMIT 1"
+        )
+        return cur.fetchone()
+    except Exception as e:
+        log.error(f"DB get_last_update: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def get_system_updates(n: int = 10) -> list:
+    """Returnerar de n senaste system_updates-raderna."""
+    conn = get_connection()
+    if not conn:
+        return []
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute(
+            "SELECT * FROM system_updates ORDER BY updated_at DESC LIMIT %s", (n,)
+        )
+        return cur.fetchall()
+    except Exception as e:
+        log.error(f"DB get_system_updates: {e}")
+        return []
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     if test_connection():

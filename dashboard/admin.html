@@ -829,6 +829,49 @@
       </div>
 
     </div><!-- /grid-2 -->
+
+    <!-- ── Systemuppdatering ─────────────────────────────────────────────── -->
+    <div class="section-title"><i class="fa-solid fa-arrow-rotate-up"></i> &nbsp;Systemuppdatering (apt)</div>
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <i class="fa-brands fa-raspberry-pi" style="font-size:26px;color:var(--text-muted)"></i>
+            <div>
+              <div style="font-size:14px;font-weight:600">Raspberry Pi OS</div>
+              <div id="sysupdate-last" style="font-size:12px;color:var(--text-muted)">Hämtar status…</div>
+            </div>
+          </div>
+          <div id="sysupdate-info" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+          <button class="btn btn-save" id="btn-check-updates" onclick="checkUpdates()">
+            <i class="fa-solid fa-magnifying-glass"></i> &nbsp;Kontrollera
+          </button>
+          <button class="btn btn-auto" id="btn-run-updates" onclick="runSystemUpdate()">
+            <i class="fa-solid fa-arrow-rotate-up"></i> &nbsp;Kör uppdatering
+          </button>
+        </div>
+      </div>
+
+      <div id="sysupdate-result" class="save-result" style="margin-top:14px"></div>
+
+      <div id="sysupdate-packages" style="display:none;margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);
+                    text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">
+          Tillgängliga paket
+        </div>
+        <div id="sysupdate-pkg-list"
+             style="font-size:12px;color:var(--text);background:var(--surface2);
+                    border:1px solid var(--border);border-radius:var(--radius-sm);
+                    padding:10px;font-family:monospace;max-height:150px;
+                    overflow-y:auto;line-height:1.9">
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /admin-panel -->
 
@@ -935,6 +978,7 @@
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-panel').style.display  = 'block';
     pollTimer = setInterval(fetchStatus, 5000);
+    loadSysupdateStatus();
   }
 
   // ── Status-poll ────────────────────────────────────────────────────────────
@@ -1155,6 +1199,99 @@
     el.className = 'show ' + type;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  }
+
+  // ── Systemuppdatering ──────────────────────────────────────────────────────
+  async function loadSysupdateStatus() {
+    try {
+      const res  = await api('GET', '/api/sysupdate/status');
+      if (!res.ok) return;
+      const data = await res.json();
+      const last = data.last_update;
+      const lastEl = document.getElementById('sysupdate-last');
+      const infoEl = document.getElementById('sysupdate-info');
+      if (!last) {
+        lastEl.textContent = 'Ingen uppdatering loggad ännu';
+        return;
+      }
+      const statusColor = { success:'var(--green)', failed:'var(--red)', no_updates:'var(--text-muted)' };
+      const statusLabel = { success:'✓ Lyckades', failed:'✗ Misslyckades', no_updates:'– Inga uppdateringar' };
+      lastEl.textContent = `Senast: ${last.updated_at}`;
+      infoEl.innerHTML = [
+        ['fa-circle-check', 'Status',          `<span style="color:${statusColor[last.status]}">${statusLabel[last.status]}</span>`],
+        ['fa-box',          'Paket uppdaterade', last.packages_updated || '0'],
+        ['fa-desktop',      'OS',               last.os_version     || '–'],
+        ['fa-microchip',    'Kernel',           last.kernel_version  || '–'],
+        ['fa-snake',        'Python',           last.python_version  || '–'],
+        ['fa-stopwatch',    'Tid',              last.duration_sec ? last.duration_sec + 's' : '–'],
+      ].map(([icon, label, val]) => `
+        <div style="display:flex;justify-content:space-between;font-size:12px">
+          <span style="color:var(--text-muted)"><i class="fa-solid ${icon}" style="width:14px"></i> ${label}</span>
+          <span style="font-weight:500">${val}</span>
+        </div>
+      `).join('');
+    } catch { /* tyst fel */ }
+  }
+
+  async function checkUpdates() {
+    const btn    = document.getElementById('btn-check-updates');
+    const resEl  = document.getElementById('sysupdate-result');
+    const pkgEl  = document.getElementById('sysupdate-packages');
+    const listEl = document.getElementById('sysupdate-pkg-list');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Kontrollerar…';
+    resEl.style.display = 'none';
+    pkgEl.style.display = 'none';
+    try {
+      const res  = await api('GET', '/api/sysupdate/check');
+      const data = await res.json();
+      resEl.style.display = 'block';
+      if (data.available === 0) {
+        resEl.className = 'save-result ok-msg';
+        resEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> &nbsp;Systemet är uppdaterat – inga uppdateringar tillgängliga.';
+      } else {
+        resEl.className = 'save-result';
+        resEl.style.color = 'var(--amber)';
+        resEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> &nbsp;${data.available} paket kan uppdateras.`;
+        listEl.innerHTML = data.packages.map(p => `<div>📦 ${p}</div>`).join('');
+        pkgEl.style.display = 'block';
+      }
+    } catch {
+      resEl.style.display = 'block';
+      resEl.className = 'save-result err-msg';
+      resEl.textContent = 'Kunde inte nå Pi';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> &nbsp;Kontrollera';
+  }
+
+  async function runSystemUpdate() {
+    if (!confirm('Starta systemuppdatering (apt upgrade)?\n\nDetta kan ta 1–5 minuter och körs i bakgrunden.')) return;
+    const btn   = document.getElementById('btn-run-updates');
+    const resEl = document.getElementById('sysupdate-result');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Startar…';
+    try {
+      const res  = await api('POST', '/api/sysupdate/run');
+      const data = await res.json();
+      resEl.style.display = 'block';
+      if (res.ok) {
+        resEl.className = 'save-result ok-msg';
+        resEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> &nbsp;${data.message}`;
+        showToast('Uppdatering startad!', 'ok');
+        // Kontrollera status efter 3 min
+        setTimeout(loadSysupdateStatus, 180000);
+      } else {
+        resEl.className = 'save-result err-msg';
+        resEl.innerHTML = `<i class="fa-solid fa-xmark"></i> &nbsp;${data.error || 'Fel'}`;
+      }
+    } catch {
+      resEl.style.display = 'block';
+      resEl.className = 'save-result err-msg';
+      resEl.textContent = 'Kunde inte nå Pi';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-arrow-rotate-up"></i> &nbsp;Kör uppdatering';
   }
 
   // Stäng modal vid klick utanför

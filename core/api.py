@@ -83,6 +83,7 @@ def set_camera_callback(fn):
 try:
     from flask import Flask, request, jsonify, send_file, Response
     from functools import wraps
+    from integrations import db
 
     _app = Flask(__name__)
     _app.secret_key = secrets.token_hex(32)
@@ -217,6 +218,39 @@ try:
         log.info(f"Admin: schema uppdaterat → {updated}")
         return jsonify({"ok": True, "updated": updated,
                         "schedule": dict(_state["schedule"])})
+
+    # ── Systemuppdatering ──────────────────────────────────────────────────────
+
+    @_app.route("/api/sysupdate/status")
+    @_auth_required
+    def _sysupdate_status():
+        last = db.get_last_system_update()
+        if last:
+            last = {k: str(v) if hasattr(v, 'isoformat') else v
+                    for k, v in last.items()}
+        return jsonify({"last_update": last})
+
+    @_app.route("/api/sysupdate/check")
+    @_auth_required
+    def _sysupdate_check():
+        from integrations.system_updater import check_available_updates
+        packages = check_available_updates()
+        return jsonify({"available": len(packages), "packages": packages})
+
+    @_app.route("/api/sysupdate/run", methods=["POST"])
+    @_auth_required
+    def _sysupdate_run():
+        from integrations.system_updater import run_updates
+        import threading
+        # Kör i bakgrundstråd – kan ta flera minuter
+        def _do_update():
+            log.info("Admin: systemuppdatering startad")
+            run_updates(dry_run=False)
+            log.info("Admin: systemuppdatering klar")
+        threading.Thread(target=_do_update, daemon=True,
+                         name="SysUpdater").start()
+        return jsonify({"ok": True,
+                        "message": "Uppdatering startad i bakgrunden – klar om 1–5 min"})
 
     # ── Serverar admin-sidan ────────────────────────────────────────────────────
 
