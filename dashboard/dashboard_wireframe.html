@@ -115,7 +115,7 @@ function render(d) {
   const soc = d.social_media;
   const his = d.sensor_history;
   const pump= d.pump_schedule;
-  const sum = d.daily_summary;
+  const sum = d.daily_summary || {};
 
   document.getElementById('dash').innerHTML = `
 
@@ -250,7 +250,7 @@ function render(d) {
           ['Vattentemp medel', fmt(sum.water_temp_avg_c)+'°C', ''],
           ['Fuktighet medel', fmt(sum.humidity_avg_pct,0)+'%', ''],
           ['pH medel', fmt(sum.ph_avg,1), ''],
-          ['Lux medel', sum.lux_avg.toLocaleString('sv-SE'), 'lux'],
+          ['Lux medel', sum.lux_avg != null ? sum.lux_avg.toLocaleString('sv-SE') : '–', 'lux'],
           ['Pump cykler', sum.pump_cycles, 'idag'],
         ].map(([label, val, sub]) => `
           <div style="background:#f5f5f3;border-radius:8px;padding:10px">
