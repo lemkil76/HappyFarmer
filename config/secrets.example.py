@@ -39,8 +39,8 @@ TIMELAPSE_ENABLED = True   # Aktivera/avaktivera timelapse-fotografering
 SENSOR_KEEP_DAYS  = 90     # Dagars sensorhistorik att behaalla i Drive
 
 # ── GPIO-pinnar (BCM-numrering) ────────────────────────────────────────────────
-PIN_DHT22        = 4   # Lufttemp + luftfuktighet (DHT22)
-PIN_WATER_TEMP   = 17  # Vattentemperatur (DS18B20, 1-Wire)
+PIN_DHT22        = 17   # Lufttemp + luftfuktighet (DHT22)
+PIN_WATER_TEMP   = 4  # Vattentemperatur (DS18B20, 1-Wire)
 PIN_PUMP_RELAY   = 22  # Vattenpump
 PIN_LIGHT_RELAY  = 23  # Odlingsljus
 PIN_FAN_RELAY    = 24  # Kylflakt
