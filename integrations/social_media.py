@@ -11,6 +11,9 @@ Install: pip install tweepy
 
 import os
 import tweepy
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ── Credentials from environment variables ────────────────────────────────────
 BEARER_TOKEN  = os.environ.get("HAPPYFARMER_BEARER_TOKEN")

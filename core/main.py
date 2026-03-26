@@ -23,7 +23,7 @@ logging.basicConfig(
 log = logging.getLogger("happyfarmer")
 
 TIMELAPSE_ENABLED = True
-SOCIAL_ENABLED    = False
+SOCIAL_ENABLED    = True
 SLEEP_MINUTES     = 5
 LOOP_COUNT        = 0
 LIGHT_ON_HOUR     = 6
@@ -154,6 +154,14 @@ def main():
             log.info(f"--- Loop {LOOP_COUNT} ---")
             data = sensors.read_all()
             store_sensor_data(data)
+            if SOCIAL_ENABLED and LOOP_COUNT % SOCIAL_POST_EVERY_N_LOOPS == 0:
+                post_sensor_update(
+                    air_temp=data["air_temp"],
+                    water_temp=data["water_temp"],
+                    humidity=data["humidity"],
+                    light_level=data["lux_desc"],
+                )
+                db.log_social_post("sensor_update", f"Loop {LOOP_COUNT}")
             sensors.pump_on()
             db.log_actuator_event("pump", "on", "schedule")
             time.sleep(PUMP_ON_SECONDS)
