@@ -31,15 +31,15 @@ log = logging.getLogger("happyfarmer.sensors")
 # ── Try importing hardware libs ────────────────────────────────────────────────
 try:
     import RPi.GPIO as GPIO
-    import Adafruit_DHT
+    import adafruit_dht     
     HW_AVAILABLE = True
 except ImportError:
     log.warning("RPi hardware libs not found - sensors running in simulation mode")
     HW_AVAILABLE = False
 
 # ── Pin map (BCM numbering) ────────────────────────────────────────────────────
-PIN_DHT22        = 4   # Air temp + humidity (DHT22)
-PIN_WATER_TEMP   = 17  # DS18B20 data (1-Wire kernel driver)
+PIN_DHT22        = 17   # Air temp + humidity (DHT22)
+PIN_WATER_TEMP   = 4  # DS18B20 data (1-Wire kernel driver)
 PIN_PUMP_RELAY   = 22  # Water pump    (active-low relay)
 PIN_LIGHT_RELAY  = 23  # Grow lights   (active-low relay)
 PIN_FAN_RELAY    = 24  # Cooling fan   (active-low relay)
@@ -161,7 +161,7 @@ def read_water_temperature() -> float | None:
     Returns temperature in Celsius, or None on failure.
 
     Prerequisite: add to /boot/config.txt:
-        dtoverlay=w1-gpio,gpiopin=17
+        dtoverlay=w1-gpio   # Standard GPIO4
     """
     if not HW_AVAILABLE:
         return 20.1  # simulation
