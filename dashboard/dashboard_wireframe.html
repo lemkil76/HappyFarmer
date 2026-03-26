@@ -283,7 +283,8 @@ async function loadData() {
 }
 
 loadData();
-setInterval(loadData, 30000); // Uppdatera var 30:e sekund
+setInterval(loadData, 30000);           // Ladda om data var 30:e sekund
+setInterval(() => location.reload(), 300000); // Ladda om sidan var 5:e minut
 </script>
 </body>
 </html>
