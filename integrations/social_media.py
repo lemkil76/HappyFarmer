@@ -75,10 +75,10 @@ def post_timelapse_update(image_path: str):
 
 
 def verify_credentials():
-    """Test credentials at startup."""
+    """Test credentials by posting a test tweet (Free tier stöder ej GET /2/users/me)."""
     try:
-        me = client.get_me()
-        print(f"Connected as: @{me.data.username}")
+        response = client.create_tweet(text="HappyFarmer API-test OK! #happyfarmer")
+        print(f"[OK] Credentials fungerar! Test-tweet id={response.data['id']}")
         return True
     except tweepy.TweepyException as e:
         print(f"[ERROR] Credential check failed: {e}")
