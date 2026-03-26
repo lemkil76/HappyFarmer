@@ -12,6 +12,7 @@ import shutil
 
 from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT
 from core import sensors, api
+from integrations import homekit
 from integrations import db
 from integrations.social_media import post_sensor_update, post_timelapse_update, verify_credentials
 
@@ -162,6 +163,7 @@ def main():
     sensors.setup()
     api.set_camera_callback(capture_image)
     api.start()
+    homekit.start()
     if not db.test_connection():
         log.warning("DB ej tillganglig - fortsatter med CSV")
     last_hires = None
