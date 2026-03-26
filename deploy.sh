@@ -19,7 +19,7 @@ echo ""
 echo "Kopierar dashboard/ till NAS via scp..."
 echo ""
 
-scp -O -r dashboard/* $NAS_USER@$NAS_HOST:$NAS_PATH/
+scp -O -r dashboard/dashboard_wireframe.html dashboard/sample_data.json lemkil76@192.168.1.100:/volume1/web/happyfarmer/dashboard/
 
 if [ $? -eq 0 ]; then
   echo ""
