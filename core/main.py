@@ -48,14 +48,14 @@ def capture_image(hires: bool = False):
     nas_latest = NAS_MOUNT / "dashboard" / "latest_image.jpg"
     try:
         subprocess.run(
-            ["ffmpeg", "-y",
-             "-f", "v4l2", "-input_format", "mjpeg",
-             "-video_size", res,
-             "-i", CAMERA_DEVICE,
-             "-frames:v", "1", "-update", "1",
-             str(path)],
-            check=True, capture_output=True,
-        )
+                        ["fswebcam",
+                        "-d", CAMERA_DEVICE,
+                        "-r", res,
+                        "--no-banner",
+                        "--skip", "5",
+                        str(path)],
+                        check=True, capture_output=True,
+                        )
         shutil.copy2(str(path), str(nas_latest))
         db.log_timelapse_image(filename=path.name, image_type=itype, resolution=res)
         log.info(f"Image: {path}")
