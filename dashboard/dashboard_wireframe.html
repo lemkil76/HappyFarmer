@@ -130,13 +130,12 @@ function render(d) {
     </div>
 
     <!-- Senaste bild -->
-    <div class="img-placeholder" style="padding:0;overflow:hidden;position:relative">
-      <img src="${img.filename}?t=${Date.now()}"
-      style="width:100%;height:100%;object-fit:cover;display:block;border-radius:8px"
-      onerror="this.style.display='none'">
-    </div>
+    <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3">
+      <img src="latest_image.jpg?t=${Date.now()}"
+        style="width:100%;height:100%;object-fit:cover;display:block">
+      </div>
     <div style="font-size:11px;color:#aaa;margin-top:6px">
-        Tagen: ${formatTimestamp(r.timestamp)}
+      Tagen: ${new Date().toLocaleString('sv-SE', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
     </div>
 
     <!-- Lufttemp + Vattentemp -->
