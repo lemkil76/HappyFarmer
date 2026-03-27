@@ -575,19 +575,34 @@ function render(d) {
 
 // ── Fetch & auto-reload ───────────────────────────────────────────────────────
 
+// Primär källa: live PHP-API (MariaDB direkt)
+// Fallback: sample_data.json (uppdateras av cloud_sync var 15:e minut)
+const DATA_SOURCES = [
+  'api/data.php?t=',
+  'dashboard/sample_data.json?t=',
+];
+
 async function loadData() {
-  try {
-    const res = await fetch('dashboard/sample_data.json?t=' + Date.now());
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    document.getElementById('error-banner').style.display = 'none';
-    render(data);
-  } catch (err) {
-    document.getElementById('loading').style.display = 'none';
-    const banner = document.getElementById('error-banner');
-    banner.style.display = 'block';
-    banner.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Kunde inte ladda sample_data.json — ' + err.message;
+  const ts = Date.now();
+  let lastErr = null;
+  for (const src of DATA_SOURCES) {
+    try {
+      const res = await fetch(src + ts);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      document.getElementById('error-banner').style.display = 'none';
+      render(data);
+      return;
+    } catch (err) {
+      lastErr = err;
+    }
   }
+  // Båda källorna misslyckades
+  document.getElementById('loading').style.display = 'none';
+  const banner = document.getElementById('error-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Kunde inte ladda data — ' + lastErr.message;
 }
 
 loadData();

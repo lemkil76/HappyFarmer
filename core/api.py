@@ -163,6 +163,7 @@ try:
             else:
                 _state["manual"][name] = state
                 getattr(sensors, on_fn if state == "on" else off_fn)()
+                db.log_actuator_event(name, state, trigger_src="manual")
 
         log.info(f"Admin: relä '{name}' → '{state}'")
         return jsonify({"ok": True, "relay": name, "state": state})
@@ -170,8 +171,22 @@ try:
     @_app.route("/api/auto", methods=["POST"])
     @_auth_required
     def _resume_auto():
+        from core import sensors
+        _is_on = {
+            "pump":        sensors.pump_is_on,
+            "grow_lights": sensors.lights_is_on,
+            "fan":         sensors.fan_is_on,
+            "heater":      sensors.heater_is_on,
+        }
         with _lock:
             for key in _state["manual"]:
+                if _state["manual"][key] is not None:
+                    # Logga aktuell fysisk status när manuell override tas bort
+                    try:
+                        actual = "on" if _is_on[key]() else "off"
+                        db.log_actuator_event(key, actual, trigger_src="auto")
+                    except Exception:
+                        pass
                 _state["manual"][key] = None
         log.info("Admin: återgått till automatisk styrning")
         return jsonify({"ok": True})
