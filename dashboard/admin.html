@@ -230,14 +230,57 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 14px;
     }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
 
     @media (max-width: 700px) {
       .grid-4 { grid-template-columns: repeat(2, 1fr); }
       .grid-2 { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 420px) {
       .grid-4 { grid-template-columns: 1fr 1fr; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* ── Platssökning ───────────────────────────────────────────────────────────── */
+    .location-results {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .location-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      background: var(--surface2);
+      transition: background 0.15s;
+    }
+    .location-item:hover { background: var(--border); }
+    .location-item.selected { border-color: var(--blue); background: var(--blue-dim); }
+    .location-coord { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .location-current {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      margin-bottom: 10px;
     }
 
     /* ── Kort ─────────────────────────────────────────────────────────────── */
@@ -787,31 +830,9 @@
       </div>
     </div>
 
-    <!-- ── Kamera ────────────────────────────────────────────────────────── -->
-    <div class="section-title"><i class="fa-solid fa-camera"></i> &nbsp;Kamera</div>
-    <div class="card">
-      <div class="camera-card">
-        <div class="camera-icon-wrap">
-          <i class="fa-solid fa-camera"></i>
-        </div>
-        <div class="camera-info">
-          <h3>Ta bild nu</h3>
-          <p>Tar en bild med webbkameran i 1920×1080 och skickar den till dashboarden.</p>
-          <div id="camera-result"></div>
-        </div>
-        <button class="btn btn-save" id="camera-btn" onclick="triggerCamera()">
-          <i class="fa-solid fa-camera"></i> &nbsp;Ta bild
-        </button>
-      </div>
-      <div id="camera-preview-wrap" style="display:none;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2);border:1px solid var(--border)">
-        <img id="camera-preview" src=""
-          style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover">
-      </div>
-    </div>
-
     <!-- ── Schema ────────────────────────────────────────────────────────── -->
     <div class="section-title"><i class="fa-solid fa-clock"></i> &nbsp;Schema</div>
-    <div class="grid-2">
+    <div class="grid-3">
 
       <!-- Pump & Luftning -->
       <div class="card">
@@ -839,7 +860,7 @@
         <div class="save-result" id="pump-result"></div>
       </div>
 
-      <!-- Belysning -->
+      <!-- Belysningscykel -->
       <div class="card">
         <div class="schedule-header">
           <i class="fa-solid fa-sun"></i>
@@ -872,7 +893,58 @@
         <div class="save-result" id="light-result"></div>
       </div>
 
-    </div><!-- /grid-2 -->
+      <!-- Välj ort -->
+      <div class="card">
+        <div class="schedule-header">
+          <i class="fa-solid fa-location-dot"></i>
+          <h3>Välj ort</h3>
+        </div>
+        <div class="location-current">
+          <i class="fa-solid fa-location-dot" style="color:var(--blue);flex-shrink:0"></i>
+          <span id="location-name" style="font-size:13px">Ingen ort vald</span>
+        </div>
+        <div class="field-row">
+          <label><i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök ort</label>
+          <div class="input-wrap" style="flex:1">
+            <input type="text" id="location-search" placeholder="ex. Göteborg"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();searchLocation();}"
+              oninput="clearLocationResults()">
+          </div>
+        </div>
+        <button class="btn btn-save" onclick="searchLocation()">
+          <i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök
+        </button>
+        <div id="location-results" class="location-results"></div>
+        <button class="btn btn-auto" id="location-save-btn"
+          style="display:none;margin-top:8px;width:100%" onclick="saveLocation()">
+          <i class="fa-solid fa-floppy-disk"></i> &nbsp;Spara ort
+        </button>
+        <div class="save-result" id="location-result"></div>
+      </div>
+
+    </div><!-- /grid-3 -->
+
+    <!-- ── Kamera ────────────────────────────────────────────────────────── -->
+    <div class="section-title"><i class="fa-solid fa-camera"></i> &nbsp;Kamera</div>
+    <div class="card">
+      <div class="camera-card">
+        <div class="camera-icon-wrap">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <div class="camera-info">
+          <h3>Ta bild nu</h3>
+          <p>Tar en bild med webbkameran i 1920×1080 och skickar den till dashboarden.</p>
+          <div id="camera-result"></div>
+        </div>
+        <button class="btn btn-save" id="camera-btn" onclick="triggerCamera()">
+          <i class="fa-solid fa-camera"></i> &nbsp;Ta bild
+        </button>
+      </div>
+      <div id="camera-preview-wrap" style="display:none;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2);border:1px solid var(--border)">
+        <img id="camera-preview" src=""
+          style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover">
+      </div>
+    </div>
 
     <!-- ── Systemuppdatering ─────────────────────────────────────────────── -->
     <div class="section-title"><i class="fa-solid fa-arrow-rotate-up"></i> &nbsp;Systemuppdatering (apt)</div>
@@ -1064,6 +1136,7 @@
     document.getElementById('admin-panel').style.display  = 'block';
     pollTimer = setInterval(fetchStatus, 5000);
     loadSysupdateStatus();
+    loadLocation();
   }
 
   // ── Status-poll ────────────────────────────────────────────────────────────
@@ -1230,6 +1303,117 @@
     }
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-camera"></i> &nbsp;Ta bild';
+  }
+
+  // ── Platssökning (Nominatim / OpenStreetMap) ────────────────────────────────
+  let selectedLocation = null;
+
+  async function searchLocation() {
+    const q   = document.getElementById('location-search').value.trim();
+    if (!q) return;
+    const btn     = document.querySelector('[onclick="searchLocation()"]');
+    const results = document.getElementById('location-results');
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Söker…';
+    results.innerHTML = '';
+    try {
+      const res  = await fetch(
+        'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
+        '&format=json&limit=5&addressdetails=1',
+        { headers: { 'Accept-Language': 'sv', 'User-Agent': 'HappyFarmer/1.0' } }
+      );
+      const data = await res.json();
+      if (!data.length) {
+        results.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Inga träffar – prova ett annat namn.</div>';
+      } else {
+        results.innerHTML = data.map((r, i) => {
+          const parts = r.display_name.split(',');
+          const label = parts.slice(0, 3).join(',').trim();
+          const lat   = parseFloat(r.lat).toFixed(4);
+          const lon   = parseFloat(r.lon).toFixed(4);
+          return `<div class="location-item" onclick="selectLocation(${i})"
+            data-lat="${lat}" data-lon="${lon}"
+            data-name="${r.display_name.replace(/"/g,'&quot;')}"
+            data-city="${parts[0].trim().replace(/"/g,'&quot;')}">
+            <i class="fa-solid fa-location-dot" style="color:var(--blue);flex-shrink:0;margin-top:2px"></i>
+            <div>
+              <div>${label}</div>
+              <div class="location-coord">${lat}, ${lon}</div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    } catch {
+      results.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0"><i class="fa-solid fa-xmark"></i> Sökning misslyckades. Kontrollera internet.</div>';
+    }
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök';
+  }
+
+  function selectLocation(idx) {
+    document.querySelectorAll('.location-item').forEach(el => el.classList.remove('selected'));
+    const item = document.querySelectorAll('.location-item')[idx];
+    item.classList.add('selected');
+    selectedLocation = {
+      lat:     parseFloat(item.dataset.lat),
+      lon:     parseFloat(item.dataset.lon),
+      city:    item.dataset.city,
+      display: item.dataset.name,
+    };
+    document.getElementById('location-save-btn').style.display = 'inline-flex';
+  }
+
+  async function saveLocation() {
+    if (!selectedLocation) return;
+    const btn    = document.getElementById('location-save-btn');
+    const result = document.getElementById('location-result');
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Sparar…';
+    result.style.display = 'none';
+    try {
+      const res = await fetch('http://nas:8080/api/settings.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ key: 'weather_location', value: JSON.stringify(selectedLocation) }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        result.className = 'save-result ok-msg';
+        result.innerHTML = `<i class="fa-solid fa-check"></i> &nbsp;Sparad: ${selectedLocation.city}`;
+        result.style.display = 'block';
+        document.getElementById('location-name').textContent = selectedLocation.city;
+        showToast('Ort sparad: ' + selectedLocation.city, 'ok');
+        document.getElementById('location-results').innerHTML = '';
+        selectedLocation = null;
+        btn.style.display = 'none';
+      } else {
+        throw new Error(data.error || 'Fel');
+      }
+    } catch (e) {
+      result.className = 'save-result err-msg';
+      result.innerHTML = '<i class="fa-solid fa-xmark"></i> &nbsp;Kunde inte spara: ' + e.message;
+      result.style.display = 'block';
+    }
+    btn.disabled  = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> &nbsp;Spara ort';
+  }
+
+  function clearLocationResults() {
+    selectedLocation = null;
+    document.getElementById('location-save-btn').style.display = 'none';
+    document.getElementById('location-result').style.display   = 'none';
+  }
+
+  async function loadLocation() {
+    try {
+      const res  = await fetch('http://nas:8080/api/settings.php?key=weather_location&t=' + Date.now());
+      const data = await res.json();
+      if (data.value) {
+        const loc = JSON.parse(data.value);
+        document.getElementById('location-name').textContent =
+          loc.city || loc.display || 'Okänd';
+      }
+    } catch { /* tyst – NAS kanske ej nåbar */ }
   }
 
   // ── Schema ─────────────────────────────────────────────────────────────────

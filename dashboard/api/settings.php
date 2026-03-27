@@ -3,22 +3,12 @@
  * HappyFarmer – Inställnings-API
  * dashboard/api/settings.php
  *
- * GET  → {"theme":"dark"|"light"}
- * POST {"theme":"dark"|"light"} → {"ok":true,"theme":"..."}
+ * GET  (no params)          → {"theme":"dark"|"light"}          ← bakåtkompatibelt
+ * GET  ?key=<key>           → {"value":"..."}
+ * POST {"theme":"..."}      → {"ok":true,"theme":"..."}         ← bakåtkompatibelt
+ * POST {"key":"...","value":"..."} → {"ok":true,"key":"..."}
  *
- * Används av dashboard.html och admin.html för att läsa/spara tema
- * i MariaDB så att inställningen är gemensam för båda sidor.
- *
- * DB-tabell krävs (kör en gång på NAS):
- *   CREATE TABLE IF NOT EXISTS settings (
- *     key_name   VARCHAR(50)  NOT NULL,
- *     value      VARCHAR(255) NOT NULL,
- *     updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
- *                             ON UPDATE CURRENT_TIMESTAMP,
- *     PRIMARY KEY (key_name)
- *   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
- *   INSERT INTO settings (key_name, value) VALUES ('theme','dark')
- *     ON DUPLICATE KEY UPDATE key_name=key_name;
+ * Används av dashboard.html och admin.html.
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -34,7 +24,7 @@ define('DB_HOST',   '127.0.0.1');
 define('DB_PORT',   '3307');
 define('DB_NAME',   'happyfarmer');
 define('DB_USER',   'happyfarmer');
-define('DB_PASS',   '');   // ← Fyll i på NAS efter deploy
+define('DB_PASS',   '');   // ← Injiceras av deploy.sh
 
 function db_run($sql) {
     $cmd = sprintf(
@@ -45,20 +35,56 @@ function db_run($sql) {
     return trim(shell_exec($cmd) ?? '');
 }
 
+function db_set($key, $value) {
+    $k = addslashes($key);
+    $v = addslashes($value);
+    db_run("INSERT INTO settings (key_name, value)
+            VALUES ('$k', '$v')
+            ON DUPLICATE KEY UPDATE value='$v', updated_at=NOW()");
+}
+
+function db_get($key) {
+    $k = addslashes($key);
+    return db_run("SELECT value FROM settings WHERE key_name='$k' LIMIT 1");
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $body  = json_decode(file_get_contents('php://input'), true) ?? [];
+    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    // Generisk key/value (nytt format)
+    if (isset($body['key'])) {
+        $key   = trim($body['key']   ?? '');
+        $value = trim($body['value'] ?? '');
+        if (!$key) {
+            http_response_code(400);
+            echo json_encode(['error' => 'key saknas']);
+            exit;
+        }
+        db_set($key, $value);
+        echo json_encode(['ok' => true, 'key' => $key]);
+        exit;
+    }
+
+    // Bakåtkompatibelt: {"theme":"dark"}
     $theme = $body['theme'] ?? '';
     if (!in_array($theme, ['dark', 'light'], true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Ogiltigt tema – ange dark eller light']);
         exit;
     }
-    db_run("INSERT INTO settings (key_name, value)
-            VALUES ('theme', '$theme')
-            ON DUPLICATE KEY UPDATE value='$theme', updated_at=NOW()");
+    db_set('theme', $theme);
     echo json_encode(['ok' => true, 'theme' => $theme]);
+
 } else {
-    $val   = db_run("SELECT value FROM settings WHERE key_name='theme' LIMIT 1");
-    $theme = in_array($val, ['dark', 'light'], true) ? $val : 'dark';
-    echo json_encode(['theme' => $theme]);
+    // GET
+    $key = $_GET['key'] ?? '';
+    if ($key) {
+        $val = db_get($key);
+        echo json_encode(['value' => $val === '' ? null : $val]);
+    } else {
+        // Bakåtkompatibelt: returnera tema
+        $val   = db_get('theme');
+        $theme = in_array($val, ['dark', 'light'], true) ? $val : 'dark';
+        echo json_encode(['theme' => $theme]);
+    }
 }
