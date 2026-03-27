@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HappyFarmer – Admin</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
     /* ── Reset & base ──────────────────────────────────────────────────────── */
@@ -472,14 +473,16 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
+      gap: 6px;
       height: 36px;
+      padding: 0 12px;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text-muted);
       cursor: pointer;
-      font-size: 15px;
+      font-size: 13px;
+      font-weight: 600;
       transition: color 0.2s, background 0.2s;
       flex-shrink: 0;
     }
@@ -957,8 +960,8 @@
     if (!btn) return;
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     btn.innerHTML = isDark
-      ? '<i class="fa-solid fa-sun"></i>'
-      : '<i class="fa-solid fa-moon"></i>';
+      ? '<i class="fa-solid fa-sun"></i> Ljust'
+      : '<i class="fa-solid fa-moon"></i> Mörkt';
     btn.title = isDark ? 'Byt till ljust tema' : 'Byt till mörkt tema';
   }
 
