@@ -212,6 +212,19 @@ if HAP_OK:
 
 # ── Publik startfunktion ───────────────────────────────────────────────────────
 
+def _get_local_ip() -> str:
+    """Hämtar Pi:ns lokala IP utan att nå internet."""
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("192.168.1.1", 80))   # router – ingen data skickas
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return socket.gethostbyname(socket.gethostname())
+
+
 def start():
     """Startar HomeKit-bridge i en daemon-tråd. Anropas från main()."""
     if not HAP_OK:
@@ -220,20 +233,25 @@ def start():
 
     HAP_STATE.parent.mkdir(parents=True, exist_ok=True)
 
-    driver = AccessoryDriver(
-        port         = HAP_PORT,
-        persist_file = str(HAP_STATE),
-        pincode      = HAP_PINCODE,
-    )
-    driver.add_accessory(_build_bridge(driver))
+    try:
+        local_ip = _get_local_ip()
+        driver = AccessoryDriver(
+            port         = HAP_PORT,
+            persist_file = str(HAP_STATE),
+            pincode      = HAP_PINCODE,
+            address      = local_ip,
+        )
+        driver.add_accessory(_build_bridge(driver))
 
-    t = threading.Thread(
-        target=driver.start,
-        daemon=True,
-        name="HappyFarmer-HomeKit",
-    )
-    t.start()
-    log.info(
-        f"HomeKit-bridge startad på port {HAP_PORT} "
-        f"– parningskod: {HAP_PINCODE.decode()}"
-    )
+        t = threading.Thread(
+            target=driver.start,
+            daemon=True,
+            name="HappyFarmer-HomeKit",
+        )
+        t.start()
+        log.info(
+            f"HomeKit-bridge startad på port {HAP_PORT} "
+            f"– parningskod: {HAP_PINCODE.decode()}"
+        )
+    except Exception as e:
+        log.error(f"HomeKit kunde inte startas: {e} – fortsätter utan HomeKit")
