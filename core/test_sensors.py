@@ -15,10 +15,11 @@ Menu:
   3. Hamta lufttemperatur
   4. Hamta pH-varde
   5. Hamta luxvarde
-  6. Starta / sla av flakt
-  7. Starta / sla av belysning
-  8. Starta / sla av vattenvarmaren
-  9. Las alla sensorer pa en gang
+  6. Starta / sla av vattenpump
+  7. Starta / sla av flakt
+  8. Starta / sla av belysning
+  9. Starta / sla av vattenvarmaren
+  A. Las alla sensorer pa en gang
   0. Avsluta
 """
 
@@ -149,6 +150,36 @@ def test_lux():
     print()
 
 
+def test_pump():
+    header("Vattenpump (GPIO 22)")
+    currently_on = sensors.pump_is_on()
+    print(f"  Nuvarande status: ", end="")
+    toggle_result("Pump", currently_on)
+    print()
+
+    if currently_on:
+        action = input(clr("  Sla AV pumpen? (j/n): ", BOLD)).strip().lower()
+        if action == "j":
+            sensors.pump_off()
+            print(clr("  ✓ Pump AV", YELLOW))
+        else:
+            print(clr("  Ingen andring.", DIM))
+    else:
+        action = input(clr("  Sla PA pumpen? (j/n): ", BOLD)).strip().lower()
+        if action == "j":
+            sensors.pump_on()
+            print(clr("  ✓ Pump PA", GREEN))
+            duration = input(clr("  Hur lange? (sekunder, Enter = manuell): ", BOLD)).strip()
+            if duration.isdigit():
+                print(clr(f"  Vantar {duration}s...", DIM))
+                time.sleep(int(duration))
+                sensors.pump_off()
+                print(clr("  ✓ Pump AV (timer)", YELLOW))
+        else:
+            print(clr("  Ingen andring.", DIM))
+    print()
+
+
 def test_fan():
     header("Flakt (GPIO 24)")
     currently_on = sensors.fan_is_on()
@@ -265,10 +296,11 @@ MENU = [
     ("3", "Hamta lufttemperatur",            test_air_temp),
     ("4", "Hamta pH-varde",                  test_ph),
     ("5", "Hamta luxvarde",                  test_lux),
-    ("6", "Starta / sla av flakt",           test_fan),
-    ("7", "Starta / sla av belysning",       test_lights),
-    ("8", "Starta / sla av vattenvarmaren",  test_heater),
-    ("9", "Las alla sensorer pa en gang",    test_all),
+    ("6", "Starta / sla av vattenpump",      test_pump),
+    ("7", "Starta / sla av flakt",           test_fan),
+    ("8", "Starta / sla av belysning",       test_lights),
+    ("9", "Starta / sla av vattenvarmaren",  test_heater),
+    ("A", "Las alla sensorer pa en gang",    test_all),
     ("0", "Avsluta",                         None),
 ]
 
