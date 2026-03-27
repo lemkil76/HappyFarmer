@@ -161,7 +161,7 @@ def main():
     log.info("=== HappyFarmer starting ===")
     db.log_system_event("HappyFarmer starting", "info", "main")
     sensors.setup()
-    api.set_camera_callback(capture_image)
+    api.set_camera_callback(lambda: capture_image(hires=True))
     api.start()
     homekit.start()
     if not db.test_connection():

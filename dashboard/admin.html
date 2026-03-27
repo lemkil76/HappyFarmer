@@ -756,12 +756,16 @@
         </div>
         <div class="camera-info">
           <h3>Ta bild nu</h3>
-          <p>Tar en bild med webbkameran och skickar den till dashboarden (640×480).</p>
+          <p>Tar en bild med webbkameran i 1920×1080 och skickar den till dashboarden.</p>
           <div id="camera-result"></div>
         </div>
         <button class="btn btn-save" id="camera-btn" onclick="triggerCamera()">
           <i class="fa-solid fa-camera"></i> &nbsp;Ta bild
         </button>
+      </div>
+      <div style="margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2);border:1px solid var(--border)">
+        <img id="camera-preview" src="http://nas:8080/dashboard/latest_image.jpg?t=0"
+          style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover">
       </div>
     </div>
 
@@ -1102,6 +1106,7 @@
     try {
       const res = await api('POST', '/api/auto');
       if (res.ok) {
+        document.getElementById('manual-banner').style.display = 'none';
         showToast('Automatisk styrning aktiverad för alla reläer', 'ok');
         fetchStatus();
       }
@@ -1125,6 +1130,10 @@
         res_el.className = 'save-result ok-msg';
         res_el.innerHTML = '<i class="fa-solid fa-check"></i> Bild tagen och sparad!';
         showToast('Bild tagen!', 'ok');
+        setTimeout(() => {
+          const img = document.getElementById('camera-preview');
+          if (img) img.src = 'http://nas:8080/dashboard/latest_image.jpg?t=' + Date.now();
+        }, 2000);
       } else {
         res_el.className = 'save-result err-msg';
         res_el.innerHTML = `<i class="fa-solid fa-xmark"></i> ${data.error}`;
