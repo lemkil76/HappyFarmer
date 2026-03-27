@@ -763,8 +763,8 @@
           <i class="fa-solid fa-camera"></i> &nbsp;Ta bild
         </button>
       </div>
-      <div style="margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2);border:1px solid var(--border)">
-        <img id="camera-preview" src="http://nas:8080/dashboard/latest_image.jpg?t=0"
+      <div id="camera-preview-wrap" style="display:none;margin-top:12px;border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2);border:1px solid var(--border)">
+        <img id="camera-preview" src=""
           style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover">
       </div>
     </div>
@@ -1131,8 +1131,10 @@
         res_el.innerHTML = '<i class="fa-solid fa-check"></i> Bild tagen och sparad!';
         showToast('Bild tagen!', 'ok');
         setTimeout(() => {
-          const img = document.getElementById('camera-preview');
-          if (img) img.src = 'http://nas:8080/dashboard/latest_image.jpg?t=' + Date.now();
+          const wrap = document.getElementById('camera-preview-wrap');
+          const img  = document.getElementById('camera-preview');
+          img.src = 'http://nas:8080/dashboard/latest_image.jpg?t=' + Date.now();
+          wrap.style.display = 'block';
         }, 2000);
       } else {
         res_el.className = 'save-result err-msg';
