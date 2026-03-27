@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="300">
 <title>HappyFarmer Dashboard</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
@@ -588,7 +589,11 @@ async function loadData() {
 
 loadData();
 setInterval(loadData, 30000);            // Data var 30:e sekund
-setInterval(() => location.reload(), 300000); // Helsida var 5:e minut
+
+// Ladda om data direkt när fliken/skärmen blir aktiv igen
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') loadData();
+});
 </script>
 </body>
 </html>
