@@ -193,6 +193,7 @@ def main():
                 (DATA_DIR / "state.json").write_text(json.dumps(state))
             except Exception as e:
                 log.warning(f"state.json write failed: {e}")
+            api.write_relay_states()
             if SOCIAL_ENABLED and LOOP_COUNT % SOCIAL_POST_EVERY_N_LOOPS == 0:
                 post_sensor_update(
                     air_temp=data["air_temp"],

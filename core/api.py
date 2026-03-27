@@ -21,6 +21,8 @@ import threading
 import logging
 import secrets
 import os
+import json
+import datetime
 from pathlib import Path
 
 try:
@@ -76,6 +78,37 @@ def set_camera_callback(fn):
     """Injiceras av main.py för att ge API tillgång till kamerafunktionen."""
     global _camera_fn
     _camera_fn = fn
+
+
+# API-relänamn → DB/JSON-namn (grow_lights heter "lights" i URL-routen)
+_RELAY_DB_NAME = {
+    "pump":   "pump",
+    "lights": "grow_lights",
+    "fan":    "fan",
+    "heater": "heater",
+}
+
+
+def write_relay_states():
+    """Skriver aktuella relälägen till relay_states.json på NAS.
+
+    Anropas från _set_relay(), _resume_auto() och core/main.py varje loop.
+    PHP-API:et läser filen för realtidsvisning utan fördröjning.
+    """
+    try:
+        from core import sensors
+        from config.paths import NAS_RELAY_STATES
+        states = {
+            "pump":        "on" if sensors.pump_is_on()   else "off",
+            "grow_lights": "on" if sensors.lights_is_on() else "off",
+            "fan":         "on" if sensors.fan_is_on()    else "off",
+            "heater":      "on" if sensors.heater_is_on() else "off",
+            "_updated":    datetime.datetime.now().isoformat(),
+        }
+        NAS_RELAY_STATES.parent.mkdir(parents=True, exist_ok=True)
+        NAS_RELAY_STATES.write_text(json.dumps(states))
+    except Exception as e:
+        log.debug(f"relay_states.json write failed (NAS ej tillgänglig?): {e}")
 
 
 # ── Flask-applikation ──────────────────────────────────────────────────────────
@@ -157,13 +190,15 @@ try:
 
         from core import sensors
         on_fn, off_fn = _RELAY_FNS[name]
+        db_name = _RELAY_DB_NAME.get(name, name)
         with _lock:
             if state == "auto":
                 _state["manual"][name] = None
             else:
                 _state["manual"][name] = state
                 getattr(sensors, on_fn if state == "on" else off_fn)()
-                db.log_actuator_event(name, state, trigger_src="manual")
+                db.log_actuator_event(db_name, state, trigger_src="manual")
+        write_relay_states()
 
         log.info(f"Admin: relä '{name}' → '{state}'")
         return jsonify({"ok": True, "relay": name, "state": state})
@@ -173,21 +208,22 @@ try:
     def _resume_auto():
         from core import sensors
         _is_on = {
-            "pump":        sensors.pump_is_on,
-            "grow_lights": sensors.lights_is_on,
-            "fan":         sensors.fan_is_on,
-            "heater":      sensors.heater_is_on,
+            "pump":   sensors.pump_is_on,
+            "lights": sensors.lights_is_on,
+            "fan":    sensors.fan_is_on,
+            "heater": sensors.heater_is_on,
         }
         with _lock:
             for key in _state["manual"]:
                 if _state["manual"][key] is not None:
-                    # Logga aktuell fysisk status när manuell override tas bort
                     try:
-                        actual = "on" if _is_on[key]() else "off"
-                        db.log_actuator_event(key, actual, trigger_src="auto")
+                        actual  = "on" if _is_on[key]() else "off"
+                        db_name = _RELAY_DB_NAME.get(key, key)
+                        db.log_actuator_event(db_name, actual, trigger_src="auto")
                     except Exception:
                         pass
                 _state["manual"][key] = None
+        write_relay_states()
         log.info("Admin: återgått till automatisk styrning")
         return jsonify({"ok": True})
 

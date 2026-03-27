@@ -58,6 +58,10 @@ NAS_DASHBOARD_DIR = NAS_MOUNT / "dashboard"
 #   http://server:8080/dashboard/sample_data.json
 NAS_SAMPLE_DATA = NAS_DASHBOARD_DIR / "sample_data.json"
 
+# api/relay_states.json – skrivs av core/api.py och core/main.py vid varje reläändring.
+# Läses av dashboard/api/data.php för realtidsvisning utan fördröjning.
+NAS_RELAY_STATES = NAS_MOUNT / "api" / "relay_states.json"
+
 # ── Code directories (for reference) ──────────────────────────────────────────
 CODE_DIR         = BASE_DIR
 CORE_DIR         = CODE_DIR / "core"
