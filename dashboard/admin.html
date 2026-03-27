@@ -248,29 +248,6 @@
     }
 
     /* ── Platssökning ───────────────────────────────────────────────────────────── */
-    .location-results {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .location-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      font-size: 12px;
-      background: var(--surface2);
-      transition: background 0.15s;
-    }
-    .location-item:hover { background: var(--border); }
-    .location-item.selected { border-color: var(--blue); background: var(--blue-dim); }
-    .location-coord { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
     .location-current {
       display: flex;
       align-items: center;
@@ -282,6 +259,65 @@
       font-size: 13px;
       margin-bottom: 10px;
     }
+    /* ── Sök-combobox ─────────────────────────────────────────── */
+    .location-input-row {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .location-input-row:focus-within { border-color: var(--blue); }
+    .location-input-row input {
+      flex: 1;
+      border: none;
+      background: var(--surface2);
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .location-input-row input::placeholder { color: var(--text-muted); }
+    .location-search-btn {
+      padding: 0 13px;
+      background: var(--surface2);
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .location-search-btn:hover { background: var(--border); color: var(--text); }
+    .location-dropdown {
+      border: 1px solid var(--blue);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      overflow: hidden;
+      display: none;
+    }
+    .location-wrap.open .location-input-row {
+      border-color: var(--blue);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+    .location-wrap.open .location-dropdown { display: block; }
+    .location-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .location-item:last-child { border-bottom: none; }
+    .location-item:hover { background: var(--surface2); }
+    .location-item.selected { background: var(--blue-dim); }
+    .location-coord { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .location-msg { padding: 10px 12px; font-size: 12px; color: var(--text-muted); background: var(--surface); }
 
     /* ── Kort ─────────────────────────────────────────────────────────────── */
     .card {
@@ -903,20 +939,19 @@
           <i class="fa-solid fa-location-dot" style="color:var(--blue);flex-shrink:0"></i>
           <span id="location-name" style="font-size:13px">Ingen ort vald</span>
         </div>
-        <div class="field-row">
-          <label><i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök ort</label>
-          <div class="input-wrap" style="flex:1">
-            <input type="text" id="location-search" placeholder="ex. Göteborg"
+        <div class="location-wrap" id="location-wrap">
+          <div class="location-input-row">
+            <input type="text" id="location-search" placeholder="Sök ort…"
               onkeydown="if(event.key==='Enter'){event.preventDefault();searchLocation();}"
               oninput="clearLocationResults()">
+            <button class="location-search-btn" id="location-search-btn" onclick="searchLocation()">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
           </div>
+          <div id="location-results" class="location-dropdown"></div>
         </div>
-        <button class="btn btn-save" onclick="searchLocation()">
-          <i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök
-        </button>
-        <div id="location-results" class="location-results"></div>
         <button class="btn btn-auto" id="location-save-btn"
-          style="display:none;margin-top:8px;width:100%" onclick="saveLocation()">
+          style="display:none;width:100%;margin-top:10px" onclick="saveLocation()">
           <i class="fa-solid fa-floppy-disk"></i> &nbsp;Spara ort
         </button>
         <div class="save-result" id="location-result"></div>
@@ -1309,13 +1344,18 @@
   let selectedLocation = null;
 
   async function searchLocation() {
-    const q   = document.getElementById('location-search').value.trim();
+    const q    = document.getElementById('location-search').value.trim();
     if (!q) return;
-    const btn     = document.querySelector('[onclick="searchLocation()"]');
-    const results = document.getElementById('location-results');
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Söker…';
-    results.innerHTML = '';
+    const btn  = document.getElementById('location-search-btn');
+    const wrap = document.getElementById('location-wrap');
+    const drop = document.getElementById('location-results');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    drop.innerHTML = '';
+    wrap.classList.remove('open');
+    selectedLocation = null;
+    document.getElementById('location-save-btn').style.display = 'none';
+    document.getElementById('location-result').style.display   = 'none';
     try {
       const res  = await fetch(
         'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) +
@@ -1324,9 +1364,9 @@
       );
       const data = await res.json();
       if (!data.length) {
-        results.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0">Inga träffar – prova ett annat namn.</div>';
+        drop.innerHTML = '<div class="location-msg">Inga träffar – prova ett annat namn.</div>';
       } else {
-        results.innerHTML = data.map((r, i) => {
+        drop.innerHTML = data.map((r, i) => {
           const parts = r.display_name.split(',');
           const label = parts.slice(0, 3).join(',').trim();
           const lat   = parseFloat(r.lat).toFixed(4);
@@ -1343,11 +1383,13 @@
           </div>`;
         }).join('');
       }
+      wrap.classList.add('open');
     } catch {
-      results.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0"><i class="fa-solid fa-xmark"></i> Sökning misslyckades. Kontrollera internet.</div>';
+      drop.innerHTML = '<div class="location-msg" style="color:var(--red)"><i class="fa-solid fa-xmark"></i> Sökning misslyckades.</div>';
+      wrap.classList.add('open');
     }
     btn.disabled  = false;
-    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> &nbsp;Sök';
+    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i>';
   }
 
   function selectLocation(idx) {
@@ -1360,7 +1402,7 @@
       city:    item.dataset.city,
       display: item.dataset.name,
     };
-    document.getElementById('location-save-btn').style.display = 'inline-flex';
+    document.getElementById('location-save-btn').style.display = 'flex';
   }
 
   async function saveLocation() {
@@ -1378,14 +1420,16 @@
       });
       const data = await res.json();
       if (res.ok && data.ok) {
-        result.className = 'save-result ok-msg';
-        result.innerHTML = `<i class="fa-solid fa-check"></i> &nbsp;Sparad: ${selectedLocation.city}`;
-        result.style.display = 'block';
         document.getElementById('location-name').textContent = selectedLocation.city;
-        showToast('Ort sparad: ' + selectedLocation.city, 'ok');
+        document.getElementById('location-wrap').classList.remove('open');
         document.getElementById('location-results').innerHTML = '';
-        selectedLocation = null;
+        document.getElementById('location-search').value = '';
         btn.style.display = 'none';
+        result.className = 'save-result ok-msg';
+        result.innerHTML = `<i class="fa-solid fa-circle-check"></i> &nbsp;${selectedLocation.city} sparad`;
+        result.style.display = 'block';
+        showToast('Ort sparad: ' + selectedLocation.city, 'ok');
+        selectedLocation = null;
       } else {
         throw new Error(data.error || 'Fel');
       }
@@ -1399,6 +1443,8 @@
   }
 
   function clearLocationResults() {
+    const wrap = document.getElementById('location-wrap');
+    if (wrap) wrap.classList.remove('open');
     selectedLocation = null;
     document.getElementById('location-save-btn').style.display = 'none';
     document.getElementById('location-result').style.display   = 'none';
@@ -1410,8 +1456,7 @@
       const data = await res.json();
       if (data.value) {
         const loc = JSON.parse(data.value);
-        document.getElementById('location-name').textContent =
-          loc.city || loc.display || 'Okänd';
+        document.getElementById('location-name').textContent = loc.city || loc.display || 'Okänd';
       }
     } catch { /* tyst – NAS kanske ej nåbar */ }
   }
