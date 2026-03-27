@@ -27,17 +27,30 @@ scp -O dashboard/sample_data.json lemkil76@192.168.1.100:$NAS_WEB/dashboard/samp
 
 # PHP live-API -> api/-mappen
 ssh lemkil76@192.168.1.100 "mkdir -p $NAS_WEB/api"
-scp -O dashboard/api/data.php lemkil76@192.168.1.100:$NAS_WEB/api/data.php
+scp -O dashboard/api/data.php     lemkil76@192.168.1.100:$NAS_WEB/api/data.php
+scp -O dashboard/api/settings.php lemkil76@192.168.1.100:$NAS_WEB/api/settings.php
 
-if [ $? -eq 0 ]; then
-  echo ""
-  echo "Deploy klar!"
-  echo "Dashboard : http://$NAS_HOST:8080/dashboard.html"
-  echo "Live API  : http://$NAS_HOST:8080/api/data.php"
-  echo ""
-  echo "OBS: Glöm inte att ange DB_PASS i /volume1/web/happyfarmer/api/data.php på NAS!"
-else
+if [ $? -ne 0 ]; then
   echo ""
   echo "FEL: scp misslyckades."
   exit 1
 fi
+
+# Injicera DB-lösenord i PHP-filer direkt efter kopiering
+# Lösenordet läses ur secrets.py på Pi (aldrig i git)
+DB_PASS=$(ssh pi@192.168.1.128 "cd /home/pi/happyfarmer && python3 -c \"from config.secrets import DB_PASS; print(DB_PASS)\" 2>/dev/null")
+if [ -n "$DB_PASS" ]; then
+  ssh lemkil76@192.168.1.100 "
+    sed -i \"s/define('DB_PASS', '');/define('DB_PASS', '$DB_PASS');/\" $NAS_WEB/api/data.php
+    sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $NAS_WEB/api/settings.php
+  "
+  echo "DB-lösenord injicerat automatiskt."
+else
+  echo "OBS: Kunde inte hämta DB_PASS – sätt det manuellt i api/data.php och api/settings.php på NAS."
+fi
+
+echo ""
+echo "Deploy klar!"
+echo "Dashboard : http://$NAS_HOST:8080/dashboard.html"
+echo "Live API  : http://$NAS_HOST:8080/api/data.php"
+echo "Inställn. : http://$NAS_HOST:8080/api/settings.php"

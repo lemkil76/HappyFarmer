@@ -9,7 +9,7 @@
     /* ── Reset & base ──────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
+    :root, [data-theme="dark"] {
       --bg:         #0d1117;
       --surface:    #161b22;
       --surface2:   #1e2430;
@@ -24,6 +24,25 @@
       --amber-dim:  #3d2f0a;
       --blue:       #58a6ff;
       --blue-dim:   #0d2040;
+      --radius:     12px;
+      --radius-sm:  8px;
+    }
+
+    [data-theme="light"] {
+      --bg:         #f6f8fa;
+      --surface:    #ffffff;
+      --surface2:   #eaeef2;
+      --border:     #d0d7de;
+      --text:       #1f2328;
+      --text-muted: #656d76;
+      --green:      #1a7f37;
+      --green-dim:  #dafbe1;
+      --red:        #cf222e;
+      --red-dim:    #ffebe9;
+      --amber:      #9a6700;
+      --amber-dim:  #fff8c5;
+      --blue:       #0969da;
+      --blue-dim:   #ddf4ff;
       --radius:     12px;
       --radius-sm:  8px;
     }
@@ -449,6 +468,23 @@
 
     .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
+    .btn-theme {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 15px;
+      transition: color 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-theme:hover { color: var(--text); background: var(--border); }
+
     /* ── Auto-kort ────────────────────────────────────────────────────────── */
     .auto-card {
       display: flex;
@@ -611,6 +647,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <button id="theme-toggle" class="btn-theme" onclick="toggleTheme()" title="Byt tema"></button>
       <a href="#" onclick="window.location.href='http://nas:8080/dashboard.html?t='+Date.now(); return false;"
          style="text-decoration:none">
         <button class="btn btn-logout">
@@ -907,6 +944,49 @@
      JAVASCRIPT
 ══════════════════════════════════════════════════════════════════════════════ -->
 <script>
+  // ── Tema ───────────────────────────────────────────────────────────────────
+  const SETTINGS_URL = 'http://nas:8080/api/settings.php';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('hf-theme', theme);
+  }
+
+  function updateThemeIcon() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.innerHTML = isDark
+      ? '<i class="fa-solid fa-sun"></i>'
+      : '<i class="fa-solid fa-moon"></i>';
+    btn.title = isDark ? 'Byt till ljust tema' : 'Byt till mörkt tema';
+  }
+
+  async function toggleTheme() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    updateThemeIcon();
+    try {
+      await fetch(SETTINGS_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ theme: next }),
+      });
+    } catch (e) { /* NAS ej nåbar – lokalt tema redan sparat */ }
+  }
+
+  // Tillämpa tema direkt (undvik flimmer), synka sedan från DB
+  (function initTheme() {
+    const local       = localStorage.getItem('hf-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyTheme(local || (prefersDark ? 'dark' : 'light'));
+    updateThemeIcon();
+    fetch(SETTINGS_URL + '?t=' + Date.now())
+      .then(r => r.json())
+      .then(d => { if (d.theme) { applyTheme(d.theme); updateThemeIcon(); } })
+      .catch(() => {});
+  })();
+
   // ── Token-hantering ────────────────────────────────────────────────────────
   const TOKEN_KEY  = 'hf_admin_token';
   let authToken    = sessionStorage.getItem(TOKEN_KEY) || '';
