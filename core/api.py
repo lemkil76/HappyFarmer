@@ -183,7 +183,7 @@ try:
     def _camera():
         if _camera_fn is None:
             return jsonify({"error": "Kamerafunktion ej registrerad"}), 503
-        result = _camera_fn(hires=False)
+        result = _camera_fn()
         if result:
             return jsonify({"ok": True, "file": str(result)})
         return jsonify({"error": "Kameran misslyckades – kontrollera anslutningen"}), 500
