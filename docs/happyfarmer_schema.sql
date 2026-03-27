@@ -136,6 +136,21 @@ CREATE OR REPLACE VIEW dagssammanfattning AS
   ORDER BY datum DESC;
 
 -- ============================================================
+-- feature_log
+-- Kronologisk changelog over lanserade features
+-- ============================================================
+CREATE TABLE IF NOT EXISTS feature_log (
+    id           INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    released_at  DATE          NOT NULL,
+    version      VARCHAR(10)   DEFAULT NULL,
+    category     ENUM('core','dashboard','api','db','integration','hardware','security') NOT NULL DEFAULT 'core',
+    title        VARCHAR(100)  NOT NULL,
+    description  TEXT          DEFAULT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_released_at (released_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- ============================================================
 -- system_updates
 -- Loggar apt-uppdateringar pa Pi:n
 -- ============================================================
@@ -163,6 +178,41 @@ VALUES (22.5, 64.0, 20.1, 6.5, 8240, 'dag', 1);
 
 INSERT INTO system_events (level, source, message)
 VALUES ('info', 'main', 'HappyFarmer schema installerat och klart');
+
+-- ============================================================
+-- Feature-historik (kronologisk)
+-- ============================================================
+INSERT INTO feature_log (released_at, version, category, title, description) VALUES
+  ('2026-03-20', 'v0.1', 'hardware',     'GPIO-sensorer & aktuatorer',
+   'DHT22 (lufttemp/fuktighet), DS18B20 (vattentemp 1-Wire), pH-sensor via MCP3008 ADC. Reläer för pump, odlingsljus, fläkt och värmare på GPIO 22-25.'),
+  ('2026-03-20', 'v0.1', 'core',         'Huvudloop (main.py)',
+   'Automatisk pumpstyrning, ljusschema (timbaserat), klimatkontroll (fläkt/värmare efter min/max-temperatur), CSV-loggning och 5-minuterssömnloop.'),
+  ('2026-03-21', 'v0.2', 'db',           'MariaDB-integration (db.py)',
+   'Sensoravläsningar, aktuatorhändelser, timelapse-metadata och systemhändelser lagras i MariaDB 10 på Synology NAS (port 3307).'),
+  ('2026-03-21', 'v0.2', 'db',           'DB-schema (happyfarmer_schema.sql)',
+   'Tabeller: sensor_readings, actuator_events, timelapse_images, timelapse_videos, social_posts, system_events, system_updates. Vyer: senaste_avlasning, dagssammanfattning.'),
+  ('2026-03-22', 'v0.2', 'integration',  'NAS-synk (cloud_sync.py)',
+   'Periodisk synkronisering av sensordata och bilder till Synology NAS via SMB-mount (/mnt/nas/web). Kör var 15:e minut via cron.'),
+  ('2026-03-23', 'v0.3', 'dashboard',    'Dashboard (dashboard.html)',
+   'Webbdashboard på NAS:en med sensorkort (lufttemp, fuktighet, vattentemp, pH, lux), aktuatorstatus, historikdiagram (sparklines) och dagsammanfattning.'),
+  ('2026-03-24', 'v0.4', 'security',     'Admin-panel med inloggning (admin.html)',
+   'Lösenordsskyddad adminsida servad från Pi via Flask. JWT-liknande token i sessionStorage. Manuell override av reläer och schemaläggning.'),
+  ('2026-03-25', 'v0.4', 'api',          'Flask REST API (core/api.py)',
+   'REST API för reläkontroll (/relay/<name>/<state>), override-hantering, schemaläggning och kameratrigger. Kör på Pi:n port 5000.'),
+  ('2026-03-25', 'v0.4', 'integration',  'HomeKit-integration (homekit.py)',
+   'HAP-python bridge exponerar pump, odlingsljus, fläkt och värmare som HomeKit-tillbehör.'),
+  ('2026-03-26', 'v0.5', 'api',          'Realtidssynk av relälägen (relay_states.json)',
+   'relay_states.json skrivs direkt till NAS-mount efter varje aktuatorändring via write_relay_states(). Noll fördröjning jämfört med actuator_events-tabellen.'),
+  ('2026-03-26', 'v0.5', 'dashboard',    'PHP Live API på NAS (dashboard/api/data.php)',
+   'PHP API läser MariaDB direkt via shell_exec (mysqli ej tillgänglig på DS211+). Ersätter 15-minutersfördröjd sample_data.json. Automatisk DB_PASS-injektion i deploy.sh.'),
+  ('2026-03-26', 'v0.5', 'dashboard',    'Delad tema-inställning via MariaDB (settings.php)',
+   'Ljust/mörkt tema växlas på adminsidan och synkroniseras via settings-tabellen i MariaDB. Båda sidor (NAS port 8080 + Pi port 5000) delar inställningen.'),
+  ('2026-03-27', 'v0.6', 'dashboard',    'Dashboard header restyling',
+   'Dashboard-headern omdesignad för att matcha adminns topbar: sticky, surface-bakgrund, border-bottom, topbar-left/right-layout med logo, titel och meta-info.'),
+  ('2026-03-27', 'v0.6', 'dashboard',    'Favicon (🌿)',
+   'Emoji-SVG-favicon visas i webbläsarfliken för både dashboard och adminsidan.'),
+  ('2026-03-27', 'v0.7', 'db',           'Feature Log (feature_log)',
+   'Ny tabell för kronologisk changelog över lanserade features. Separerar features från ops-loggen i system_events.');
 
 -- ============================================================
 -- Verifiera

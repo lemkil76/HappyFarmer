@@ -273,6 +273,33 @@ def get_recent_posts(n: int = 2) -> list:
         conn.close()
 
 
+def log_feature(
+    title: str,
+    description: str = None,
+    category: str = "core",
+    version: str = None,
+    released_at: datetime.date = None,
+) -> bool:
+    """Loggar en ny feature i feature_log-tabellen (kronologisk changelog)."""
+    conn = get_connection()
+    if not conn:
+        return False
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO feature_log (released_at, version, category, title, description) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (released_at or datetime.date.today(), version, category, title, description),
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        log.error(f"DB feature_log: {e}")
+        return False
+    finally:
+        conn.close()
+
+
 def log_system_event(message: str, level: str = "info", source: str = "main") -> bool:
     conn = get_connection()
     if not conn:
