@@ -369,7 +369,10 @@ function render(d) {
   const pump = d.pump_schedule;
   const sum  = d.daily_summary || {};
 
-  const syncOk = sys.drive_sync_status === 'synced';
+  const syncAge = sys.drive_sync_last
+    ? (Date.now() - new Date(sys.drive_sync_last).getTime()) / 60000
+    : 999;
+  const syncOk = syncAge < 25;
 
   document.getElementById('dash').innerHTML = `
 
@@ -538,7 +541,7 @@ function render(d) {
         <div class="status-row">
           <span style="color:var(--muted)"><i class="fa-solid fa-gear" style="width:16px"></i> Läge</span>
           <span style="font-size:11px;font-weight:600;color:${sys.simulation_mode ? 'var(--amber)' : 'var(--green)'}">
-            ${sys.simulation_mode ? '⚠ SIMULATION' : '✓ HARDWARE'}
+            ${sys.simulation_mode ? '⚠ Simulationsläge' : '✓ Hårdvaruläge'}
           </span>
         </div>
       </div>
@@ -598,7 +601,7 @@ document.addEventListener('visibilitychange', () => {
 // Visa utloggningsmeddelande om ?msg=utloggad finns i URL
 if (new URLSearchParams(window.location.search).get('msg') === 'utloggad') {
   const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4)';
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface2,#1e2330);color:var(--green,#3fb950);border:1px solid var(--green,#3fb950);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4)';
   toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> &nbsp;Du är nu utloggad från adminsidan';
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);

@@ -324,13 +324,14 @@ def build_sample_data_from_db(actuator_states=None, system_info=None) -> dict:
             "pump": "unknown", "grow_lights": "unknown",
             "fan":  "unknown", "heater":      "unknown",
         },
-        "system": system_info or {
+        "system": {
             "loop_count":        int(latest.get("loop_count") or 0),
             "sleep_minutes":     5,
             "drive_sync_status": "synced",
             "drive_sync_last":   now.isoformat(),
             "uptime_hours":      0.0,
             "simulation_mode":   False,
+            **(system_info or {}),
         },
         "pump_schedule": {
             "on_seconds": 1800, "off_seconds": 900,

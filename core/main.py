@@ -9,6 +9,7 @@ import datetime
 import logging
 import subprocess
 import shutil
+import json
 
 from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT
 from core import sensors, api
@@ -158,6 +159,7 @@ def control_climate(air_temp):
 
 def main():
     global LOOP_COUNT
+    START_TIME = datetime.datetime.now()
     log.info("=== HappyFarmer starting ===")
     db.log_system_event("HappyFarmer starting", "info", "main")
     sensors.setup()
@@ -175,6 +177,22 @@ def main():
             log.info(f"--- Loop {LOOP_COUNT} ---")
             data = sensors.read_all()
             store_sensor_data(data)
+            # Skriv state.json för cloud_sync
+            try:
+                state = {
+                    "loop_count":      LOOP_COUNT,
+                    "start_time":      START_TIME.isoformat(),
+                    "simulation_mode": not sensors.HW_AVAILABLE,
+                    "actuator_states": {
+                        "pump":        "on" if sensors.pump_is_on()    else "off",
+                        "grow_lights": "on" if sensors.lights_is_on()  else "off",
+                        "fan":         "on" if sensors.fan_is_on()     else "off",
+                        "heater":      "on" if sensors.heater_is_on()  else "off",
+                    },
+                }
+                (DATA_DIR / "state.json").write_text(json.dumps(state))
+            except Exception as e:
+                log.warning(f"state.json write failed: {e}")
             if SOCIAL_ENABLED and LOOP_COUNT % SOCIAL_POST_EVERY_N_LOOPS == 0:
                 post_sensor_update(
                     air_temp=data["air_temp"],

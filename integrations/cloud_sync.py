@@ -80,10 +80,38 @@ def sync_log():
         log.info("Logg roterad")
 
 
+def _read_state() -> dict:
+    """Läs state.json skriven av core/main.py efter varje loop."""
+    try:
+        state_file = DATA_DIR / "state.json"
+        if state_file.exists():
+            return json.loads(state_file.read_text())
+    except Exception:
+        pass
+    return {}
+
+
 def write_sample_data():
     try:
+        state = _read_state()
+        uptime_hours = 0.0
+        if "start_time" in state:
+            start = datetime.datetime.fromisoformat(state["start_time"])
+            uptime_hours = round((datetime.datetime.now() - start).total_seconds() / 3600, 1)
+        system_info = {
+            "loop_count":        state.get("loop_count", 0),
+            "sleep_minutes":     5,
+            "drive_sync_status": "synced",
+            "drive_sync_last":   datetime.datetime.now().isoformat(),
+            "uptime_hours":      uptime_hours,
+            "simulation_mode":   state.get("simulation_mode", False),
+        }
+        actuator_states = state.get("actuator_states")
         if test_connection():
-            data = build_sample_data_from_db()
+            data = build_sample_data_from_db(
+                actuator_states=actuator_states,
+                system_info=system_info,
+            )
             log.info("sample_data.json byggd fran MariaDB")
         else:
             data = _build_from_csv()
