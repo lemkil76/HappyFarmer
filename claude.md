@@ -1,6 +1,6 @@
 # Hemma Techstack – Projektöversikt
 
-> Uppdaterad: 2026-03-25 (rev 4)
+> Uppdaterad: 2026-03-27 (rev 5)
 
 ---
 
@@ -160,8 +160,7 @@ ssh admin@nas
 | SMB | vers 1.0 | Fildelning (Pi + Mac) |
 
 > DS211+ kör kernel 2.6.32, ARM 32-bit, 256 MB RAM.
-> Extern åtkomst: `http://lemkil76.synology.me:5050`
-> TODO: Sätt upp port forwarding för extern åtkomst.
+> Extern åtkomst: `http://lemkil76.synology.me:8080` (router → NAS port 8080, Synology DDNS)
 
 ---
 
@@ -209,13 +208,13 @@ message = client.messages.create(
 
 ## 9. Nästa steg
 
-- [ ] Koppla in sensorer och testa med `python3 -m core.test_sensors`
-- [ ] Aktivera I2C, SPI, 1-Wire via `sudo raspi-config`
-- [ ] Installera kamera och testa timelapse
-- [ ] Konfigurera Twitter/X API (`SOCIAL_ENABLED=True`)
-- [ ] Starta `python3 -m core.main` + cron för autostart
+- [x] Koppla in sensorer och testa med `python3 -m core.test_sensors`
+- [x] Aktivera I2C, SPI, 1-Wire via `sudo raspi-config`
+- [x] Installera kamera och testa timelapse
+- [x] Konfigurera Twitter/X API (`SOCIAL_ENABLED=True`)
+- [x] Starta `python3 -m core.main` + cron för autostart
 - [ ] Konfigurera VLAN i routern
-- [ ] Port forwarding för extern åtkomst
+- [x] Port forwarding för extern åtkomst – `http://lemkil76.synology.me:8080`
 
 ---
 
