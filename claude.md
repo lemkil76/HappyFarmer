@@ -213,8 +213,17 @@ message = client.messages.create(
 - [x] Installera kamera och testa timelapse
 - [x] Konfigurera Twitter/X API (`SOCIAL_ENABLED=True`)
 - [x] Starta `python3 -m core.main` + cron för autostart
-- [ ] Konfigurera VLAN i routern
 - [x] Port forwarding för extern åtkomst – `http://lemkil76.synology.me:8080`
+
+---
+
+## 10. Framtida / Nice-to-have
+
+- [ ] VLAN-segmentering i routern (kräver VLAN-kapabel router, t.ex. UniFi/pfSense)
+- [ ] SMHI/YR.no väderdata på dashboard
+- [ ] Timelapse-visning på dashboard
+- [ ] Ny Pi inomhus med Gunicorn + Nginx som ersätter NAS som webbserver
+- [ ] Extern åtkomst till admin-panel (Pi port 5000, idag bara lokalt)
 
 ---
 
