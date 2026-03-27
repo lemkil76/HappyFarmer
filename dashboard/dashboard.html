@@ -130,6 +130,36 @@ body {
 .pill-next   { background: var(--blue-dim);  color: var(--blue);  border-color: var(--blue); }
 .pill-warn   { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
 
+/* ── Väderprognos ───────────────────────────────────────────────────────────── */
+.weather-hours { display: flex; flex-direction: column; margin-top: 6px; }
+
+.weather-hour {
+  display: grid;
+  grid-template-columns: 34px 20px 28px 1fr 38px;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.weather-hour:last-child { border-bottom: none; }
+.wh-time   { color: var(--muted); font-size: 11px; }
+.wh-icon   { text-align: center; font-size: 13px; }
+.wh-temp   { font-weight: 600; color: var(--text); }
+.wh-wind   { font-size: 11px; text-align: right; }
+.wh-precip { font-size: 11px; text-align: right; }
+
+.wx-alert {
+  display: flex; align-items: center; gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.wx-alert.warn   { background: var(--amber-dim); border: 1px solid var(--amber); color: var(--amber); }
+.wx-alert.danger { background: var(--red-dim);   border: 1px solid var(--red);   color: var(--red); }
+
 /* ── Topbar ─────────────────────────────────────────────────────────────────── */
 #topbar, .topbar {
   background: var(--surface);
@@ -392,6 +422,75 @@ function pillLabel(status) {
   return '<i class="fa-solid fa-clock"></i> Nästa';
 }
 
+// ── Väderprognos (prototyp – statisk mockdata, ersätts av SMHI-API) ───────────
+function weatherCard() {
+  const now = new Date();
+  const WX = [
+    { sym:'clear',         temp:8,  wind:4,  precip:0.0 },
+    { sym:'partly_cloudy', temp:7,  wind:5,  precip:0.0 },
+    { sym:'cloudy',        temp:6,  wind:7,  precip:0.1 },
+    { sym:'light_rain',    temp:5,  wind:8,  precip:1.2 },
+    { sym:'heavy_rain',    temp:4,  wind:12, precip:2.5 },
+    { sym:'heavy_rain',    temp:4,  wind:14, precip:1.8 },
+    { sym:'light_rain',    temp:3,  wind:10, precip:0.5 },
+    { sym:'cloudy',        temp:3,  wind:8,  precip:0.2 },
+    { sym:'cloudy',        temp:2,  wind:6,  precip:0.0 },
+    { sym:'cloudy',        temp:2,  wind:5,  precip:0.0 },
+    { sym:'cloudy',        temp:1,  wind:4,  precip:0.0 },
+    { sym:'partly_cloudy', temp:1,  wind:3,  precip:0.0 },
+  ];
+  const ICONS = {
+    clear:         '<i class="fa-solid fa-sun"                 style="color:#d29922"></i>',
+    partly_cloudy: '<i class="fa-solid fa-cloud-sun"           style="color:#d29922"></i>',
+    cloudy:        '<i class="fa-solid fa-cloud"               style="color:var(--muted)"></i>',
+    overcast:      '<i class="fa-solid fa-cloud"               style="color:var(--text)"></i>',
+    light_rain:    '<i class="fa-solid fa-cloud-rain"          style="color:var(--blue)"></i>',
+    heavy_rain:    '<i class="fa-solid fa-cloud-showers-heavy" style="color:var(--blue)"></i>',
+    thunder:       '<i class="fa-solid fa-cloud-bolt"          style="color:var(--amber)"></i>',
+    snow:          '<i class="fa-solid fa-snowflake"           style="color:#a8d8ff"></i>',
+    fog:           '<i class="fa-solid fa-smog"                style="color:var(--muted)"></i>',
+  };
+
+  const maxWind   = Math.max(...WX.map(h => h.wind));
+  const maxPrecip = Math.max(...WX.map(h => h.precip));
+  const windWarn  = maxWind > 10;
+  const rainWarn  = maxPrecip > 0.5;
+
+  const alert = (windWarn && rainWarn)
+    ? `<div class="wx-alert danger"><i class="fa-solid fa-triangle-exclamation"></i> Stark vind ${maxWind} m/s & regn</div>`
+    : windWarn
+    ? `<div class="wx-alert warn"><i class="fa-solid fa-wind"></i> Stark vind ${maxWind} m/s</div>`
+    : rainWarn
+    ? `<div class="wx-alert warn"><i class="fa-solid fa-cloud-rain"></i> Regn väntas</div>`
+    : '';
+
+  const rows = WX.map((h, i) => {
+    const t    = new Date(now.getTime() + i * 3600000);
+    const time = t.getHours().toString().padStart(2,'0') + ':00';
+    const wCol = h.wind > 10 ? 'var(--amber)' : h.wind > 7 ? 'var(--text)' : 'var(--muted)';
+    const pCol = h.precip > 0.5 ? 'var(--blue)' : 'var(--muted)';
+    return `<div class="weather-hour">
+      <span class="wh-time">${time}</span>
+      <span class="wh-icon">${ICONS[h.sym] || ''}</span>
+      <span class="wh-temp">${h.temp}°</span>
+      <span class="wh-wind"  style="color:${wCol}"><i class="fa-solid fa-wind" style="font-size:9px"></i> ${h.wind}</span>
+      <span class="wh-precip" style="color:${pCol}">${h.precip > 0 ? h.precip.toFixed(1)+'mm' : '–'}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="card">
+    <div class="card-label">
+      <i class="fa-solid fa-cloud-sun"></i> Prognos 12h
+      <span style="font-size:10px;color:var(--amber);font-weight:500;margin-left:4px;background:var(--amber-dim);border:1px solid var(--amber);padding:1px 6px;border-radius:10px">DEMO</span>
+    </div>
+    ${alert}
+    <div class="weather-hours">${rows}</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:right">
+      <i class="fa-solid fa-circle-info"></i> Prototyp · SMHI-data integreras senare
+    </div>
+  </div>`;
+}
+
 function relayPill(state) {
   const on = state === 'on';
   return `<span class="pill ${on ? 'pill-active' : 'pill-done'}">${on ? '<i class="fa-solid fa-power-off"></i> ON' : '<i class="fa-solid fa-xmark"></i> OFF'}</span>`;
@@ -562,6 +661,9 @@ function render(d) {
         `).join('')}
       </div>
     </div>
+
+    <!-- ── Väderprognos (col3 rad2) ─────────────────────────────────────────── -->
+    ${weatherCard()}
 
     <!-- ── Senaste inlägg ───────────────────────────────────────────────────── -->
     <div class="card span2">
