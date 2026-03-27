@@ -968,9 +968,7 @@
     sessionStorage.removeItem(TOKEN_KEY);
     authToken = '';
     clearInterval(pollTimer);
-    document.getElementById('admin-panel').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('pw-input').value = '';
+    window.location.href = 'http://nas:8080/dashboard.html?msg=utloggad';
   }
 
   // ── Visa/dölj ──────────────────────────────────────────────────────────────

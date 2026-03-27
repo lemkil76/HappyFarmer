@@ -594,6 +594,16 @@ setInterval(loadData, 30000);            // Data var 30:e sekund
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') loadData();
 });
+
+// Visa utloggningsmeddelande om ?msg=utloggad finns i URL
+if (new URLSearchParams(window.location.search).get('msg') === 'utloggad') {
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f6feb;color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.4)';
+  toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> &nbsp;Du är nu utloggad från adminsidan';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+  history.replaceState({}, '', window.location.pathname); // ta bort ?msg från URL
+}
 </script>
 </body>
 </html>
