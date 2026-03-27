@@ -392,7 +392,7 @@ function render(d) {
             ${syncOk ? 'Synkad' : 'Ej synkad'}
           </span>
         </div>
-        <a href="http://rasp:5000/admin" target="_blank" class="btn-admin">
+        <a href="http://rasp:5000/admin" class="btn-admin">
           <i class="fa-solid fa-sliders"></i> Admin
         </a>
       </div>
@@ -402,7 +402,7 @@ function render(d) {
     <div class="card span2">
       <div class="card-label"><i class="fa-solid fa-camera"></i> Senaste bild</div>
       <div style="width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border)">
-        <img src="latest_image.jpg?t=${Date.now()}"
+        <img src="dashboard/latest_image.jpg?t=${Date.now()}"
           style="width:100%;height:100%;object-fit:cover;display:block">
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px">
@@ -574,7 +574,7 @@ function render(d) {
 
 async function loadData() {
   try {
-    const res = await fetch('sample_data.json?t=' + Date.now());
+    const res = await fetch('dashboard/sample_data.json?t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     document.getElementById('error-banner').style.display = 'none';
