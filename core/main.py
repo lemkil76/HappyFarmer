@@ -117,12 +117,15 @@ def run_grow_lights(now: datetime.datetime, schedule: dict):
     if on_h <= now.hour < off_h:
         sensors.lights_on()
         db.log_actuator_event("grow_lights", "on", "schedule")
+        api.write_relay_states()
         time.sleep(hrs * 3600)
         sensors.lights_off()
         db.log_actuator_event("grow_lights", "off", "schedule",
                               duration_sec=hrs * 3600)
+        api.write_relay_states()
     else:
         sensors.lights_off()
+        api.write_relay_states()
 
 
 def control_climate(air_temp):
@@ -138,23 +141,28 @@ def control_climate(air_temp):
             db.log_actuator_event("heater", "on", "climate")
         if fan_ov is None:
             sensors.fan_off()
+        api.write_relay_states()
         if heater_ov is None:
             time.sleep(30 * 60)
             sensors.heater_off()
             db.log_actuator_event("heater", "off", "climate", duration_sec=1800)
+            api.write_relay_states()
     elif air_temp > TEMP_MAX:
         if fan_ov is None:
             sensors.fan_on()
             db.log_actuator_event("fan", "on", "climate")
         if heater_ov is None:
             sensors.heater_off()
+        api.write_relay_states()
         if fan_ov is None:
             time.sleep(30 * 60)
             sensors.fan_off()
             db.log_actuator_event("fan", "off", "climate", duration_sec=1800)
+            api.write_relay_states()
     else:
         if fan_ov    is None: sensors.fan_off()
         if heater_ov is None: sensors.heater_off()
+        api.write_relay_states()
 
 
 def main():
@@ -193,7 +201,6 @@ def main():
                 (DATA_DIR / "state.json").write_text(json.dumps(state))
             except Exception as e:
                 log.warning(f"state.json write failed: {e}")
-            api.write_relay_states()
             if SOCIAL_ENABLED and LOOP_COUNT % SOCIAL_POST_EVERY_N_LOOPS == 0:
                 post_sensor_update(
                     air_temp=data["air_temp"],
@@ -209,9 +216,11 @@ def main():
                 off_s = schedule.get("pump_off_seconds", PUMP_OFF_SECONDS)
                 sensors.pump_on()
                 db.log_actuator_event("pump", "on", "schedule")
+                api.write_relay_states()
                 time.sleep(on_s)
                 sensors.pump_off()
                 db.log_actuator_event("pump", "off", "schedule", duration_sec=on_s)
+                api.write_relay_states()
                 time.sleep(off_s)
             else:
                 log.info(f"Pump: manuell override aktiv ({pump_ov}) – hoppar över automatik")
