@@ -1075,9 +1075,11 @@
   }
 
   async function doConfirm() {
+    const relay = pendingRelay;
+    const state = pendingState;
     closeModal();
-    if (pendingRelay && pendingState) {
-      await setRelay(pendingRelay, pendingState);
+    if (relay && state) {
+      await setRelay(relay, state);
     }
   }
 
