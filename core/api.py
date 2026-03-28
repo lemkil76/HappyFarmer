@@ -202,14 +202,24 @@ try:
         from core import sensors
         on_fn, off_fn = _RELAY_FNS[name]
         db_name = _RELAY_DB_NAME.get(name, name)
+
+        # GPIO-kontroll i lock (~1ms) – svara direkt utan att vänta på DB/SCP
         with _lock:
             if state == "auto":
                 _state["manual"][name] = None
             else:
                 _state["manual"][name] = state
                 getattr(sensors, on_fn if state == "on" else off_fn)()
-                db.log_actuator_event(db_name, state, trigger_src="manual")
-        write_relay_states()
+
+        # DB-loggning och relay-sync i bakgrunden – blockerar inte svaret
+        def _post_relay():
+            try:
+                if state != "auto":
+                    db.log_actuator_event(db_name, state, trigger_src="manual")
+            except Exception as e:
+                log.warning(f"DB-loggning relä misslyckades: {e}")
+            write_relay_states()
+        threading.Thread(target=_post_relay, daemon=True, name=f"Relay-{name}").start()
 
         log.info(f"Admin: relä '{name}' → '{state}'")
         return jsonify({"ok": True, "relay": name, "state": state})
@@ -224,17 +234,24 @@ try:
             "fan":    sensors.fan_is_on,
             "heater": sensors.heater_is_on,
         }
+        events = []
         with _lock:
             for key in _state["manual"]:
                 if _state["manual"][key] is not None:
-                    try:
-                        actual  = "on" if _is_on[key]() else "off"
-                        db_name = _RELAY_DB_NAME.get(key, key)
-                        db.log_actuator_event(db_name, actual, trigger_src="auto")
-                    except Exception:
-                        pass
+                    actual  = "on" if _is_on[key]() else "off"
+                    events.append((_RELAY_DB_NAME.get(key, key), actual))
                 _state["manual"][key] = None
-        write_relay_states()
+
+        # DB-loggning i bakgrunden – blockerar inte svaret
+        def _post_auto():
+            for db_name, actual in events:
+                try:
+                    db.log_actuator_event(db_name, actual, trigger_src="auto")
+                except Exception as e:
+                    log.warning(f"DB-loggning auto misslyckades: {e}")
+            write_relay_states()
+        threading.Thread(target=_post_auto, daemon=True, name="AutoResume").start()
+
         log.info("Admin: återgått till automatisk styrning")
         return jsonify({"ok": True})
 
