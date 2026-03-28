@@ -236,6 +236,14 @@ try:
             return jsonify({"error": "Kamerafunktion ej registrerad"}), 503
         result = _camera_fn()
         if result:
+            # Synka bilden till lacasa direkt (väntar inte på cron)
+            def _sync():
+                try:
+                    from integrations.cloud_sync import sync_image
+                    sync_image()
+                except Exception as e:
+                    log.warning(f"Bildsynk efter kamera misslyckades: {e}")
+            threading.Thread(target=_sync, daemon=True, name="CameraSync").start()
             return jsonify({"ok": True, "file": str(result)})
         return jsonify({"error": "Kameran misslyckades – kontrollera anslutningen"}), 500
 
