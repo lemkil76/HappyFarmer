@@ -24,6 +24,17 @@ define('DB_USER', 'happyfarmer');
 define('DB_PASS', '');   // ← Fyll i på NAS. Aldrig i git.
 define('MYSQL_BIN', '/usr/local/mariadb10/bin/mysql');
 
+// ── DB-konnektivitetstest ────────────────────────────────────────────────────
+$db_test = shell_exec(sprintf(
+    'timeout 3 %s --connect-timeout=2 -h %s -P %s -u %s -p%s %s -e "SELECT 1" 2>/dev/null',
+    MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
+));
+if (empty(trim((string)$db_test))) {
+    http_response_code(503);
+    echo json_encode(['error' => 'MariaDB ej tillgänglig – dashboard visar cachad data']);
+    exit;
+}
+
 // ── Kör en SQL-fråga och returnera array av assoc-arrays ────────────────────
 function db_query($sql) {
     $pass = escapeshellarg(DB_PASS);
@@ -121,17 +132,22 @@ $sum_rows = db_query_cols(
 $summary = $sum_rows ? $sum_rows[0] : [];
 
 // ── Sensorhistorik (medel per 2h, senaste 24h) ───────────────────────────────
+// bucket 0 = äldst (24–22h sedan), bucket 11 = senast (2–0h sedan)
 $hist_rows = db_query_cols(
-    'SELECT FLOOR(HOUR(recorded_at)/2)*2 AS hour_group,
+    'SELECT FLOOR(TIMESTAMPDIFF(MINUTE, DATE_SUB(NOW(), INTERVAL 24 HOUR), recorded_at) / 120) AS bucket,
             ROUND(AVG(air_temp_c),1) AS air_temp_c,
             ROUND(AVG(humidity_pct),1) AS humidity_pct,
             ROUND(AVG(water_temp_c),1) AS water_temp_c,
             ROUND(AVG(ph),2) AS ph,
             ROUND(AVG(lux),0) AS lux
      FROM sensor_readings
-     WHERE recorded_at >= NOW() - INTERVAL 24 HOUR
-     GROUP BY hour_group ORDER BY hour_group ASC LIMIT 12',
-    ['hour_group','air_temp_c','humidity_pct','water_temp_c','ph','lux']
+     WHERE recorded_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+       AND recorded_at < NOW()
+     GROUP BY bucket
+     HAVING bucket >= 0 AND bucket <= 11
+     ORDER BY bucket ASC
+     LIMIT 12',
+    ['bucket','air_temp_c','humidity_pct','water_temp_c','ph','lux']
 );
 
 // ── Senaste sociala inlägg ───────────────────────────────────────────────────
@@ -243,8 +259,9 @@ $data = [
     ],
 
     'sensor_history' => [
-        'description'        => 'Medelvarde per 2h senaste 24h',
+        'description'        => 'Medelvarde per 2h senaste 24h – bucket 0=aldst, 11=senast',
         'interval_minutes'   => 120,
+        'buckets'            => col_i($hist_rows, 'bucket'),
         'air_temperature_c'  => col_f($hist_rows, 'air_temp_c'),
         'humidity_pct'       => col_f($hist_rows, 'humidity_pct'),
         'water_temperature_c'=> col_f($hist_rows, 'water_temp_c'),

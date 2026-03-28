@@ -243,10 +243,6 @@ body {
 
 /* ── Sparkline ─────────────────────────────────────────────────────────────── */
 .sparkline {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 38px;
   margin-top: 10px;
 }
 
@@ -582,15 +578,54 @@ function relayPill(state) {
   return `<span class="pill ${on ? 'pill-active' : 'pill-done'}">${on ? '<i class="fa-solid fa-power-off"></i> ON' : '<i class="fa-solid fa-xmark"></i> OFF'}</span>`;
 }
 
-function sparkline(values, color) {
-  if (!values || !values.length) return '';
-  const max = Math.max(...values);
-  const min = Math.min(...values);
+function sparkline(values, buckets, color) {
+  const N = 12;
+  // Bygg 12-slot array: bucket 0 = äldst (24h sedan), bucket 11 = senast (nu)
+  const slots = new Array(N).fill(null);
+  if (values && buckets && buckets.length) {
+    buckets.forEach((b, i) => {
+      const bi = parseInt(b);
+      if (bi >= 0 && bi < N && values[i] != null) slots[bi] = values[i];
+    });
+  } else if (values && values.length) {
+    // Bakåtkompatibelt: fyll slots från höger
+    values.slice(-N).forEach((v, i) => { slots[N - values.slice(-N).length + i] = v; });
+  }
+
+  const nonNull = slots.filter(v => v !== null);
+  if (!nonNull.length) return '<div style="height:50px;color:var(--muted);font-size:11px;padding-top:18px;text-align:center">Ingen historik</div>';
+
+  const max = Math.max(...nonNull);
+  const min = Math.min(...nonNull);
   const range = max - min || 1;
-  return values.map(v => {
-    const h = Math.round(8 + ((v - min) / range) * 30);
-    return `<div style="flex:1;height:${h}px;border-radius:2px 2px 0 0;background:${color};opacity:0.8"></div>`;
+  const now = Date.now();
+
+  const bars = slots.map((v, i) => {
+    const startMs = now - (24 - i * 2) * 3600000;
+    const endMs   = startMs + 2 * 3600000;
+    const startT  = new Date(startMs).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    const endT    = new Date(endMs).toLocaleTimeString('sv-SE',   { hour: '2-digit', minute: '2-digit' });
+    const tip     = v !== null ? `${startT}–${endT}: ${v}` : `${startT}–${endT}: saknas`;
+    const h       = v !== null ? Math.round(6 + ((v - min) / range) * 28) : 3;
+    const bg      = v !== null ? color : 'var(--border)';
+    const op      = v !== null ? '0.85' : '0.35';
+    return `<div style="flex:1;display:flex;align-items:flex-end" title="${tip}">
+      <div style="width:100%;height:${h}px;border-radius:2px 2px 0 0;background:${bg};opacity:${op}"></div>
+    </div>`;
   }).join('');
+
+  // X-axel: visa tid vid bucket 0, 4, 8 och "Nu" vid 11
+  const labelAt = new Set([0, 4, 8, 11]);
+  const lbls = Array.from({length: N}, (_, i) => {
+    if (!labelAt.has(i)) return `<div style="flex:1"></div>`;
+    const txt = i === 11 ? 'Nu'
+      : new Date(now - (24 - i * 2) * 3600000)
+          .toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+    return `<div style="flex:1;font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden">${txt}</div>`;
+  }).join('');
+
+  return `<div style="display:flex;align-items:flex-end;gap:2px;height:34px">${bars}</div>
+          <div style="display:flex;gap:2px;margin-top:3px">${lbls}</div>`;
 }
 
 function formatTimestamp(iso) {
@@ -672,7 +707,7 @@ function render(d) {
         <div class="card-val">${fmt(r.air_temperature_c)}<span style="font-size:16px;color:var(--muted)">°C</span></div>
         <div class="card-sub"><i class="fa-solid fa-droplet" style="color:var(--blue)"></i> Fuktighet: ${fmt(r.humidity_pct, 0)}%</div>
         <div class="card-trend">${statusDot(r.air_temperature_c, thr.temp_min_c, thr.temp_max_c)}</div>
-        <div class="sparkline">${sparkline(his.air_temperature_c, '#f85149')}</div>
+        <div class="sparkline">${sparkline(his.air_temperature_c, his.buckets, '#f85149')}</div>
       </div>
       <hr class="divider">
       <div>
@@ -680,7 +715,7 @@ function render(d) {
         <div class="card-val">${fmt(r.water_temperature_c)}<span style="font-size:16px;color:var(--muted)">°C</span></div>
         <div class="card-sub"><i class="fa-solid fa-flask" style="color:var(--green)"></i> pH: ${fmt(r.ph, 1)}</div>
         <div class="card-trend">${statusDot(r.water_temperature_c, thr.temp_min_c, thr.temp_max_c)}</div>
-        <div class="sparkline">${sparkline(his.water_temperature_c, '#58a6ff')}</div>
+        <div class="sparkline">${sparkline(his.water_temperature_c, his.buckets, '#58a6ff')}</div>
       </div>
     </div>
 
