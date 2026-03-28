@@ -1386,12 +1386,10 @@
         res_el.className = 'save-result ok-msg';
         res_el.innerHTML = '<i class="fa-solid fa-check"></i> Bild tagen och sparad!';
         showToast('Bild tagen!', 'ok');
-        setTimeout(() => {
-          const wrap = document.getElementById('camera-preview-wrap');
-          const img  = document.getElementById('camera-preview');
-          img.src = getWebRoot() + 'dashboard/latest_image.jpg?t=' + Date.now();
-          wrap.style.display = 'block';
-        }, 2000);
+        const wrap = document.getElementById('camera-preview-wrap');
+        const img  = document.getElementById('camera-preview');
+        img.src = getWebRoot() + 'dashboard/latest_image.jpg?t=' + Date.now();
+        wrap.style.display = 'block';
       } else {
         res_el.className = 'save-result err-msg';
         res_el.innerHTML = `<i class="fa-solid fa-xmark"></i> ${data.error}`;
