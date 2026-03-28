@@ -360,6 +360,11 @@ body {
   </div>
   <div class="error-banner" id="error-banner"></div>
 </div>
+<!-- Demo-läge: persistent banner längst upp -->
+<div id="demo-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--amber,#d29922);color:#fff;padding:8px 16px;font-size:13px;font-weight:600;text-align:center;letter-spacing:0.02em">
+  <i class="fa-solid fa-flask"></i> &nbsp;DEMO-LÄGE – visar exempeldata &nbsp;·&nbsp;
+  <span style="font-weight:400">Ändra i admin-panelen</span>
+</div>
 
 <script>
 // ── Tema ──────────────────────────────────────────────────────────────────────
@@ -522,13 +527,26 @@ function weatherCard() {
 }
 
 async function loadWeatherData() {
+  let loc = null;
   try {
-    const sr = await fetch('api/settings.php?key=weather_location&t=' + Date.now());
+    // Försök hämta ort från DB via settings.php
+    const sr = await fetchWithTimeout('api/settings.php?key=weather_location&t=' + Date.now(), 5000);
     const sd = await sr.json();
-    if (!sd.value) return;
-    const loc = JSON.parse(sd.value);
-    _smhiCity = loc.city || loc.display || '';
+    if (sd.value) {
+      loc = JSON.parse(sd.value);
+      // Spara i localStorage som fallback vid DB-bortfall
+      localStorage.setItem('hf-weather-location', sd.value);
+    }
+  } catch {
+    // DB ej nåbar – använd localStorage-cache
+    const cached = localStorage.getItem('hf-weather-location');
+    if (cached) loc = JSON.parse(cached);
+  }
 
+  if (!loc) return;
+  _smhiCity = loc.city || loc.display || '';
+
+  try {
     const url = `https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${loc.lon}/lat/${loc.lat}/data.json`;
     const wr  = await fetch(url);
     if (!wr.ok) throw new Error('HTTP ' + wr.status);
@@ -818,34 +836,57 @@ const DATA_SOURCES = [
   'dashboard/sample_data.json?t=',
 ];
 
+// ── Demo-läge ──────────────────────────────────────────────────────────────────
+// Läs data_source från MariaDB (med localStorage-cache som fallback)
+let _demoMode = false;
+
+async function loadDataSource() {
+  try {
+    const res  = await fetchWithTimeout('api/settings.php?key=data_source&t=' + Date.now(), 5000);
+    const data = await res.json();
+    if (data.value) {
+      localStorage.setItem('hf-data-source', data.value);
+      _demoMode = (data.value === 'sample');
+    } else {
+      _demoMode = (localStorage.getItem('hf-data-source') === 'sample');
+    }
+  } catch {
+    _demoMode = (localStorage.getItem('hf-data-source') === 'sample');
+  }
+  document.getElementById('demo-banner').style.display = _demoMode ? 'block' : 'none';
+  if (_demoMode) {
+    // Lägg till toppmarginalen så dashboarden inte hamnar under bannern
+    document.body.style.paddingTop = '38px';
+  } else {
+    document.body.style.paddingTop = '';
+  }
+}
+
 // ── Infobanner (röd, glider upp från botten) ──────────────────────────────
-function showBottomBanner(message) {
-  // Ta bort ev. befintlig banner
+function showBottomBanner(message, color = 'var(--red,#f85149)', duration = 5000) {
   document.querySelectorAll('.bottom-banner').forEach(el => el.remove());
   const el = document.createElement('div');
   el.className = 'bottom-banner';
   el.style.cssText =
     'position:fixed;bottom:0;left:0;right:0;z-index:9999;'
-    + 'background:var(--red,#f85149);color:#fff;'
+    + 'background:' + color + ';color:#fff;'
     + 'padding:12px 20px;font-size:13px;font-weight:500;'
     + 'display:flex;align-items:center;gap:10px;'
     + 'box-shadow:0 -2px 12px rgba(0,0,0,0.3);'
     + 'transform:translateY(100%);transition:transform 0.25s ease';
-  el.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>'
-    + '<span>' + message + '</span>'
+  el.innerHTML = '<span>' + message + '</span>'
     + '<button onclick="this.closest(\'.bottom-banner\').remove()" '
     + 'style="margin-left:auto;background:none;border:none;color:#fff;'
     + 'font-size:16px;cursor:pointer;padding:0 4px;line-height:1" '
     + 'title="Stäng">×</button>';
   document.body.appendChild(el);
-  // Trigga animation i nästa frame
   requestAnimationFrame(() => requestAnimationFrame(() => {
     el.style.transform = 'translateY(0)';
   }));
   setTimeout(() => {
     el.style.transform = 'translateY(100%)';
     setTimeout(() => el.remove(), 300);
-  }, 5000);
+  }, duration);
 }
 
 // Spårar om Pi var otillgänglig förra cykeln – undviker dubbelloggning
@@ -877,7 +918,15 @@ async function logSystemEvent(level, source, message) {
 async function loadData() {
   const ts = Date.now();
   let lastErr = null;
-  for (const src of DATA_SOURCES) {
+
+  // Demo-läge: hoppa direkt till sample_data.json
+  const sources = _demoMode
+    ? ['dashboard/sample_data.json?t=']
+    : DATA_SOURCES;
+
+  for (let i = 0; i < sources.length; i++) {
+    const src = sources[i];
+    const isFallback = !_demoMode && i > 0;
     try {
       const res = await fetchWithTimeout(src + ts, 8000);
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -890,6 +939,14 @@ async function loadData() {
       }
       document.getElementById('error-banner').style.display = 'none';
       render(data);
+      // Visa amber-banner om vi använder cachad fallback-data (ej demo-läge)
+      if (isFallback) {
+        showBottomBanner(
+          '<i class="fa-solid fa-triangle-exclamation"></i>'
+          + ' MariaDB ej tillgänglig – visar cachad data (kan vara upp till 15 min gammal)',
+          'var(--amber,#d29922)', 8000
+        );
+      }
       return;
     } catch (err) {
       lastErr = err;
@@ -909,8 +966,12 @@ async function loadData() {
   }
 }
 
-loadData();
+// Ladda data-source-inställning, sedan data
+loadDataSource().then(() => loadData());
 setInterval(loadData, 30000);            // Sensordata var 30:e sekund
+
+// Uppdatera demo-läge en gång per minut (fångar ändringar från adminsidan)
+setInterval(() => loadDataSource(), 60000);
 
 loadWeatherData();
 setInterval(loadWeatherData, 1800000);   // Väder var 30:e minut

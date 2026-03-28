@@ -566,6 +566,11 @@
       flex-shrink: 0;
     }
     .btn-theme:hover { color: var(--text); background: var(--border); }
+    .btn-demo-active {
+      color: var(--amber) !important;
+      border-color: var(--amber) !important;
+      background: var(--amber-dim) !important;
+    }
 
     /* ── Auto-kort ────────────────────────────────────────────────────────── */
     .auto-card {
@@ -729,6 +734,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <button id="demo-toggle" class="btn-theme" onclick="toggleDemoMode()" title="Växla demo/live-läge"><i class="fa-solid fa-database"></i> Live</button>
       <button id="theme-toggle" class="btn-theme" onclick="toggleTheme()" title="Byt tema"></button>
       <a href="#" onclick="window.location.href='http://nas:8080/dashboard.html?t='+Date.now(); return false;"
          style="text-decoration:none">
@@ -1085,6 +1091,51 @@
     } catch (e) { /* NAS ej nåbar – lokalt tema redan sparat */ }
   }
 
+  // ── Demo-läge ──────────────────────────────────────────────────────────────
+  function updateDemoIcon(isDemo) {
+    const btn = document.getElementById('demo-toggle');
+    if (!btn) return;
+    if (isDemo) {
+      btn.innerHTML = '<i class="fa-solid fa-flask"></i> Demo';
+      btn.title = 'Demo-läge aktivt – klicka för att växla till live-data';
+      btn.classList.add('btn-demo-active');
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-database"></i> Live';
+      btn.title = 'Live-data aktivt – klicka för att aktivera demo-läge';
+      btn.classList.remove('btn-demo-active');
+    }
+  }
+
+  async function toggleDemoMode() {
+    const current = localStorage.getItem('hf-data-source') === 'sample';
+    const next    = !current ? 'sample' : 'live';
+    localStorage.setItem('hf-data-source', next);
+    updateDemoIcon(next === 'sample');
+    try {
+      await fetch(SETTINGS_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ key: 'data_source', value: next }),
+      });
+    } catch { /* NAS ej nåbar – lokalt läge redan sparat */ }
+    showToast(next === 'sample' ? 'Demo-läge aktiverat' : 'Live-läge aktiverat',
+              next === 'sample' ? '' : 'ok');
+  }
+
+  async function loadDemoMode() {
+    // Tillämpa lokalt sparat läge direkt (undvik flimmer)
+    updateDemoIcon(localStorage.getItem('hf-data-source') === 'sample');
+    // Synka sedan från DB
+    try {
+      const res  = await fetch(SETTINGS_URL + '?key=data_source&t=' + Date.now());
+      const data = await res.json();
+      if (data.value) {
+        localStorage.setItem('hf-data-source', data.value);
+        updateDemoIcon(data.value === 'sample');
+      }
+    } catch { /* NAS kanske ej nåbar */ }
+  }
+
   // Tillämpa tema direkt (undvik flimmer), synka sedan från DB
   (function initTheme() {
     const local       = localStorage.getItem('hf-theme');
@@ -1116,6 +1167,7 @@
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   (function init() {
+    loadDemoMode();
     if (authToken) {
       showPanel();
       fetchStatus();
