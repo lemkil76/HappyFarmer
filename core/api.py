@@ -89,15 +89,17 @@ _RELAY_DB_NAME = {
 }
 
 
+_relay_sync_running = False  # Debounce – max en SCP åt gången
+
 def write_relay_states():
-    """Skriver aktuella relälägen till relay_states.json på NAS.
+    """Synkar relälägen till lacasa via SCP i bakgrundstråd.
 
     Anropas från _set_relay(), _resume_auto() och core/main.py varje loop.
-    PHP-API:et läser filen för realtidsvisning utan fördröjning.
+    PHP data.php läser relay_states.json för realtidsvisning.
     """
+    global _relay_sync_running
     try:
         from core import sensors
-        from config.paths import NAS_RELAY_STATES
         states = {
             "pump":        "on" if sensors.pump_is_on()   else "off",
             "grow_lights": "on" if sensors.lights_is_on() else "off",
@@ -105,10 +107,19 @@ def write_relay_states():
             "heater":      "on" if sensors.heater_is_on() else "off",
             "_updated":    datetime.datetime.now().isoformat(),
         }
-        NAS_RELAY_STATES.parent.mkdir(parents=True, exist_ok=True)
-        NAS_RELAY_STATES.write_text(json.dumps(states))
+        if _relay_sync_running:
+            return  # Pågående SCP – hoppa över, nästa loop hämtar aktuellt värde
+        def _sync():
+            global _relay_sync_running
+            _relay_sync_running = True
+            try:
+                from integrations.cloud_sync import sync_relay_states
+                sync_relay_states(states)
+            finally:
+                _relay_sync_running = False
+        threading.Thread(target=_sync, daemon=True, name="RelaySync").start()
     except Exception as e:
-        log.debug(f"relay_states.json write failed (NAS ej tillgänglig?): {e}")
+        log.debug(f"write_relay_states fel: {e}")
 
 
 # ── Flask-applikation ──────────────────────────────────────────────────────────

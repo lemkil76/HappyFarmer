@@ -107,9 +107,7 @@ $latest_rows = db_query_cols(
 );
 $latest = $latest_rows ? $latest_rows[0] : [];
 
-// ── Aktuatortillstånd – läs relay_states.json (skrivs av Pi direkt) ─────────
-// Filen skrivs av core/api.py vid varje reläändring och core/main.py varje loop.
-// Ger realtidsstatus utan fördröjning, till skillnad från actuator_events-tabellen.
+// ── Aktuatortillstånd – relay_states.json (SCP:ad från Pi) med DB-fallback ───
 $actuator_states = ['pump'=>'unknown','grow_lights'=>'unknown','fan'=>'unknown','heater'=>'unknown'];
 $relay_states_file = __DIR__ . '/relay_states.json';
 if (file_exists($relay_states_file)) {
@@ -118,6 +116,15 @@ if (file_exists($relay_states_file)) {
         foreach (['pump','grow_lights','fan','heater'] as $k) {
             if (isset($rs[$k])) $actuator_states[$k] = $rs[$k];
         }
+    }
+} else {
+    // Fallback: hämta senaste kända tillstånd från actuator_events i DB
+    foreach (['pump','grow_lights','fan','heater'] as $device) {
+        $rows = db_query_cols(
+            sprintf("SELECT state FROM actuator_events WHERE device='%s' ORDER BY created_at DESC LIMIT 1", $device),
+            ['state']
+        );
+        if ($rows) $actuator_states[$device] = $rows[0]['state'];
     }
 }
 

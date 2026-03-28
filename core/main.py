@@ -11,7 +11,7 @@ import subprocess
 import shutil
 import json
 
-from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT, DASHBOARD_DIR
+from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, DASHBOARD_DIR
 from core import sensors, api
 from integrations import homekit
 from integrations import db

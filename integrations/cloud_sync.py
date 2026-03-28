@@ -84,6 +84,24 @@ def sync_image():
         log.info("latest_image.jpg synkad till lacasa")
 
 
+def sync_relay_states(states: dict):
+    """Skriv relay_states.json och SCP till lacasa direkt.
+
+    Anropas fran api.py vid varje reläändring och från main.py varje loop.
+    Ger realtidsstatus på dashboarden utan fördröjning.
+    """
+    try:
+        tmp = Path(tempfile.mktemp(suffix=".json"))
+        tmp.write_text(json.dumps(states))
+        dest = f"{LACASA_WEB}/api/relay_states.json"
+        ok = _scp(str(tmp), dest)
+        tmp.unlink(missing_ok=True)
+        if ok:
+            log.debug("relay_states.json synkad till lacasa")
+    except Exception as e:
+        log.debug(f"relay_states sync misslyckades: {e}")
+
+
 def write_sample_data():
     """Bygg sample_data.json och SCP till lacasa."""
     try:

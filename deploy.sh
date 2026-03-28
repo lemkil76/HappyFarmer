@@ -48,8 +48,6 @@ scp dashboard/sample_image.jpg  "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard
 scp dashboard/api/data.php          "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/data.php"
 scp dashboard/api/settings.php      "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/settings.php"
 scp dashboard/api/log_event.php     "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/log_event.php"
-scp dashboard/api/admin_redirect.php "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/admin_redirect.php"
-
 if [ $? -ne 0 ]; then
   echo ""
   echo "FEL: scp misslyckades."
@@ -61,7 +59,6 @@ ssh "$LACASA_USER@$LACASA_HOST" "
   sed -i \"s/define('DB_PASS', '');/define('DB_PASS', '$DB_PASS');/\" $LACASA_WEB/api/data.php
   sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $LACASA_WEB/api/settings.php
   sed -i \"s/define('DB_PASS',    '');/define('DB_PASS',    '$DB_PASS');/\" $LACASA_WEB/api/log_event.php
-  sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $LACASA_WEB/api/admin_redirect.php
 "
 echo "DB-losenord injicerat."
 
