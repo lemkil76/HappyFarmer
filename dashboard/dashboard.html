@@ -689,7 +689,8 @@ function render(d) {
     <div class="card span2">
       <div class="card-label"><i class="fa-solid fa-camera"></i> Senaste bild</div>
       <div style="width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border)">
-        <img src="${_demoMode ? 'dashboard/sample_image.jpg' : 'dashboard/latest_image.jpg?t='+Date.now()}"
+        <img id="latest-img"
+          src="${_demoMode ? 'dashboard/sample_image.jpg' : 'dashboard/latest_image.jpg?t='+Date.now()}"
           style="width:100%;height:100%;object-fit:cover;display:block"
           onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;gap:8px\'><i class=\'fa-solid fa-image-slash\'></i> Ingen bild tillgänglig</div>'"
         >
@@ -883,17 +884,25 @@ async function loadDataSource() {
       localStorage.setItem('hf-data-source', data.value);
       _demoMode = (data.value === 'sample');
     } else {
-      _demoMode = (localStorage.getItem('hf-data-source') === 'sample');
+      // DB svarar men har ingen inställning → default live-läge
+      localStorage.removeItem('hf-data-source');
+      _demoMode = false;
     }
   } catch {
     _demoMode = (localStorage.getItem('hf-data-source') === 'sample');
   }
   document.getElementById('demo-banner').style.display = _demoMode ? 'block' : 'none';
   if (_demoMode) {
-    // Lägg till toppmarginalen så dashboarden inte hamnar under bannern
     document.body.style.paddingTop = '38px';
   } else {
     document.body.style.paddingTop = '';
+  }
+  // Uppdatera bilden direkt när demo-läget är känt
+  const img = document.getElementById('latest-img');
+  if (img) {
+    img.src = _demoMode
+      ? 'dashboard/sample_image.jpg'
+      : 'dashboard/latest_image.jpg?t=' + Date.now();
   }
 }
 

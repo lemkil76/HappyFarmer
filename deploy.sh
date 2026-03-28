@@ -65,8 +65,15 @@ ssh "$LACASA_USER@$LACASA_HOST" "
 "
 echo "DB-losenord injicerat."
 
+# Git pull pa lacasa (Flask serverar admin.html fran repot)
+echo "Git pull pa lacasa..."
+ssh "$LACASA_USER@$LACASA_HOST" "cd /home/pi/happyfarmer && git pull"
+
+# Git pull pa RASP (sensorer och core)
+echo "Git pull pa RASP..."
+ssh -o ConnectTimeout=5 pi@RASP "cd /home/pi/happyfarmer && git pull" || echo "OBS: RASP ej nåbar"
+
 echo ""
 echo "Deploy klar!"
-echo "Dashboard : http://$LACASA_HOST:8080/dashboard.html"
-echo "Admin     : http://$LACASA_HOST:8080/admin.html"
-echo "Live API  : http://$LACASA_HOST:8080/api/data.php"
+echo "Dashboard : https://lemkil76.duckdns.org/happyfarmer/dashboard.html"
+echo "Admin     : http://$LACASA_HOST:5000/admin"

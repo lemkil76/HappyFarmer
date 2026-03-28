@@ -736,7 +736,7 @@
     <div class="topbar-right">
       <button id="demo-toggle" class="btn-theme" onclick="toggleDemoMode()" title="Växla demo/live-läge"><i class="fa-solid fa-database"></i> Live</button>
       <button id="theme-toggle" class="btn-theme" onclick="toggleTheme()" title="Byt tema"></button>
-      <a href="#" onclick="window.location.href='http://nas:8080/dashboard.html?t='+Date.now(); return false;"
+      <a href="#" onclick="window.location.href=getDashboardUrl()+'?t='+Date.now(); return false;"
          style="text-decoration:none">
         <button class="btn btn-logout">
           <i class="fa-solid fa-gauge-high"></i> Dashboard
@@ -1148,6 +1148,20 @@
       .catch(() => {});
   })();
 
+  // ── URL-helpers (fungerar både lokalt och via duckdns) ─────────────────────
+  function getDashboardUrl() {
+    if (window.location.hostname.includes('duckdns')) {
+      return 'https://lemkil76.duckdns.org/happyfarmer/dashboard.html';
+    }
+    return 'http://lacasa:8080/dashboard.html';
+  }
+  function getWebRoot() {
+    if (window.location.hostname.includes('duckdns')) {
+      return 'https://lemkil76.duckdns.org/happyfarmer/';
+    }
+    return 'http://lacasa:8080/';
+  }
+
   // ── Token-hantering ────────────────────────────────────────────────────────
   const TOKEN_KEY  = 'hf_admin_token';
   let authToken    = sessionStorage.getItem(TOKEN_KEY) || '';
@@ -1214,7 +1228,7 @@
     sessionStorage.removeItem(TOKEN_KEY);
     authToken = '';
     clearInterval(pollTimer);
-    window.location.href = 'http://nas:8080/dashboard.html?msg=utloggad';
+    window.location.href = getDashboardUrl() + '?msg=utloggad';
   }
 
   // ── Visa/dölj ──────────────────────────────────────────────────────────────
@@ -1376,7 +1390,7 @@
         setTimeout(() => {
           const wrap = document.getElementById('camera-preview-wrap');
           const img  = document.getElementById('camera-preview');
-          img.src = 'http://nas:8080/dashboard/latest_image.jpg?t=' + Date.now();
+          img.src = getWebRoot() + 'dashboard/latest_image.jpg?t=' + Date.now();
           wrap.style.display = 'block';
         }, 2000);
       } else {
