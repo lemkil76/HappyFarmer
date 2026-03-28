@@ -1388,8 +1388,15 @@
         showToast('Bild tagen!', 'ok');
         const wrap = document.getElementById('camera-preview-wrap');
         const img  = document.getElementById('camera-preview');
-        img.src = FLASK_API_BASE + '/api/latest-image?t=' + Date.now();
-        wrap.style.display = 'block';
+        // img.src kan inte skicka X-Auth-Token – hämta som blob istället
+        const imgRes = await api('GET', '/api/latest-image?t=' + Date.now());
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          if (img._blobUrl) URL.revokeObjectURL(img._blobUrl);
+          img._blobUrl = URL.createObjectURL(blob);
+          img.src = img._blobUrl;
+          wrap.style.display = 'block';
+        }
       } else {
         res_el.className = 'save-result err-msg';
         res_el.innerHTML = `<i class="fa-solid fa-xmark"></i> ${data.error}`;
