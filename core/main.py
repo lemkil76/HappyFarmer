@@ -10,6 +10,7 @@ import logging
 import subprocess
 import shutil
 import json
+import threading
 
 from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, DASHBOARD_DIR
 from core import sensors, api
@@ -58,7 +59,12 @@ def capture_image(hires: bool = False):
                         check=True, capture_output=True,
                         )
         shutil.copy2(str(path), str(local_latest))
-        db.log_timelapse_image(filename=path.name, image_type=itype, resolution=res)
+        # DB-loggning i bakgrund – blockerar inte kamerasvar
+        threading.Thread(
+            target=db.log_timelapse_image,
+            args=(path.name, itype, res),
+            daemon=True, name="CameraDB"
+        ).start()
         log.info(f"Image: {path}")
         return str(path)
     except Exception as e:
