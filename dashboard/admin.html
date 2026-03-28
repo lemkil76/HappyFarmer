@@ -1061,7 +1061,7 @@
 ══════════════════════════════════════════════════════════════════════════════ -->
 <script>
   // ── Tema ───────────────────────────────────────────────────────────────────
-  const SETTINGS_URL = 'http://nas:8080/api/settings.php';
+  const SETTINGS_URL = '/happyfarmer/api/settings.php';
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
@@ -1148,19 +1148,10 @@
       .catch(() => {});
   })();
 
-  // ── URL-helpers (fungerar både lokalt och via duckdns) ─────────────────────
-  function getDashboardUrl() {
-    if (window.location.hostname.includes('duckdns')) {
-      return 'https://lemkil76.duckdns.org/happyfarmer/dashboard.html';
-    }
-    return 'http://lacasa:8080/dashboard.html';
-  }
-  function getWebRoot() {
-    if (window.location.hostname.includes('duckdns')) {
-      return 'https://lemkil76.duckdns.org/happyfarmer/';
-    }
-    return 'http://lacasa:8080/';
-  }
+  // ── URL-helpers – alltid relativa, fungerar lokalt och via duckdns ─────────
+  const FLASK_API_BASE = '/happyfarmer';
+  function getDashboardUrl() { return '/happyfarmer/'; }
+  function getWebRoot()      { return '/happyfarmer/'; }
 
   // ── Token-hantering ────────────────────────────────────────────────────────
   const TOKEN_KEY  = 'hf_admin_token';
@@ -1479,7 +1470,7 @@
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> &nbsp;Sparar…';
     result.style.display = 'none';
     try {
-      const res = await fetch('http://nas:8080/api/settings.php', {
+      const res = await fetch('/happyfarmer/api/settings.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ key: 'weather_location', value: JSON.stringify(selectedLocation) }),
@@ -1518,7 +1509,7 @@
 
   async function loadLocation() {
     try {
-      const res  = await fetch('http://nas:8080/api/settings.php?key=weather_location&t=' + Date.now());
+      const res  = await fetch('/happyfarmer/api/settings.php?key=weather_location&t=' + Date.now());
       const data = await res.json();
       if (data.value) {
         const loc = JSON.parse(data.value);
@@ -1577,7 +1568,7 @@
     };
     if (useAuth && authToken) opts.headers['X-Auth-Token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
-    return fetch(path, opts);
+    return fetch(FLASK_API_BASE + path, opts);
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────

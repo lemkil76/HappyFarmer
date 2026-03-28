@@ -303,16 +303,7 @@ try:
         return jsonify({"ok": True,
                         "message": "Uppdatering startad i bakgrunden – klar om 1–5 min"})
 
-    # ── Serverar admin-sidan ────────────────────────────────────────────────────
-
-    @_app.route("/admin")
-    def _admin_page():
-        return send_file(str(_ADMIN_HTML))
-
-    @_app.route("/")
-    def _root():
-        return Response('<meta http-equiv="refresh" content="0;url=/admin">',
-                        content_type="text/html")
+    # admin.html serveras av Nginx – Flask hanterar bara JSON-API
 
     FLASK_OK = True
 
