@@ -11,7 +11,7 @@ import subprocess
 import shutil
 import json
 
-from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT
+from config.paths import DATA_DIR, TIMELAPSE_DIR, LOG_FILE, NAS_MOUNT, DASHBOARD_DIR
 from core import sensors, api
 from integrations import homekit
 from integrations import db
@@ -47,7 +47,7 @@ def capture_image(hires: bool = False):
     res   = "1920x1080" if hires else "640x480"
     itype = "hires" if hires else "lowres"
     path  = TIMELAPSE_DIR / f"{ts}_{itype}.jpg"
-    nas_latest = NAS_MOUNT / "dashboard" / "latest_image.jpg"
+    local_latest = DASHBOARD_DIR / "latest_image.jpg"
     try:
         subprocess.run(
                         ["fswebcam",
@@ -58,7 +58,7 @@ def capture_image(hires: bool = False):
                         str(path)],
                         check=True, capture_output=True,
                         )
-        shutil.copy2(str(path), str(nas_latest))
+        shutil.copy2(str(path), str(local_latest))
         db.log_timelapse_image(filename=path.name, image_type=itype, resolution=res)
         log.info(f"Image: {path}")
         return str(path)
