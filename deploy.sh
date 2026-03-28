@@ -76,4 +76,4 @@ ssh -o ConnectTimeout=5 pi@RASP "cd /home/pi/happyfarmer && git pull" || echo "O
 echo ""
 echo "Deploy klar!"
 echo "Dashboard : https://lemkil76.duckdns.org/happyfarmer/dashboard.html"
-echo "Admin     : http://$LACASA_HOST:5000/admin"
+echo "Admin     : https://lemkil76.duckdns.org/happyfarmer/admin.html"
