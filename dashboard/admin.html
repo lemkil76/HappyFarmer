@@ -1243,7 +1243,10 @@
     }
   }
 
+  let lastStatus = null;
+
   function updateUI(d) {
+    lastStatus = d;
     const now = new Date().toLocaleTimeString('sv-SE');
     document.getElementById('status-line').textContent = `Uppdaterad ${now}`;
 
@@ -1309,7 +1312,12 @@
 
   // ── Reläkontroll ───────────────────────────────────────────────────────────
   function confirmRelay(name, state) {
-    // AUTO kräver ingen bekräftelse – hanteras direkt
+    // Om redan i manuellt läge – byt direkt utan modal
+    if (lastStatus?.manual?.[name] !== null && lastStatus?.manual?.[name] !== undefined) {
+      setRelay(name, state);
+      return;
+    }
+    // Första manuella override – visa bekräftelsedialog
     pendingRelay = name;
     pendingState = state;
     document.getElementById('modal-text').innerHTML =
