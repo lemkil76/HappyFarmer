@@ -614,18 +614,16 @@ function sparkline(values, buckets, color) {
     </div>`;
   }).join('');
 
-  // X-axel: visa tid vid bucket 0, 4, 8 och "Nu" vid 11
-  const labelAt = new Set([0, 4, 8, 11]);
-  const lbls = Array.from({length: N}, (_, i) => {
-    if (!labelAt.has(i)) return `<div style="flex:1"></div>`;
-    const txt = i === 11 ? 'Nu'
-      : new Date(now - (24 - i * 2) * 3600000)
-          .toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-    return `<div style="flex:1;font-size:9px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden">${txt}</div>`;
-  }).join('');
+  // X-axel: 3 etiketter med absolut positionering – vänster / mitten / höger
+  const t0  = new Date(now - 24 * 3600000).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  const t6  = new Date(now - 12 * 3600000).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  const lbl = `<div style="position:relative;height:16px;margin-top:4px">
+    <span style="position:absolute;left:0;font-size:11px;color:var(--muted);white-space:nowrap">${t0}</span>
+    <span style="position:absolute;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap">${t6}</span>
+    <span style="position:absolute;right:0;font-size:11px;color:var(--muted);white-space:nowrap">Nu</span>
+  </div>`;
 
-  return `<div style="display:flex;align-items:flex-end;gap:2px;height:34px">${bars}</div>
-          <div style="display:flex;gap:2px;margin-top:3px">${lbls}</div>`;
+  return `<div style="display:flex;align-items:flex-end;gap:2px;height:34px">${bars}</div>${lbl}`;
 }
 
 function formatTimestamp(iso) {

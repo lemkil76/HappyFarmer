@@ -1,17 +1,19 @@
 """
-HappyFarmer - NAS Sync
+HappyFarmer - Lacasa Sync
 integrations/cloud_sync.py
+
+Synkar dashboard-filer fran Pi 4 till lacasa via SCP.
 """
 
 import json
 import logging
 import datetime
-import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
 from config.paths import (
-    DATA_DIR, TIMELAPSE_DIR, LOG_FILE, SYNC_LOG_FILE,
-    NAS_MOUNT, NAS_SENSORS_DIR, NAS_TIMELAPSE_DIR,
-    NAS_LOGS_DIR, NAS_DASHBOARD_DIR, NAS_SAMPLE_DATA,
+    DATA_DIR, TIMELAPSE_DIR, LOG_FILE, SYNC_LOG_FILE, BASE_DIR,
 )
 from integrations.db import build_sample_data_from_db, test_connection
 
@@ -22,82 +24,82 @@ logging.basicConfig(
 )
 log = logging.getLogger("cloud_sync")
 
-MAX_LOG_BYTES = 5 * 1024 * 1024
+MAX_LOG_BYTES  = 5 * 1024 * 1024
 DELETE_AFTER_UPLOAD = True
 
-
-def nas_is_mounted():
-    return NAS_MOUNT.exists() and NAS_MOUNT.is_dir()
-
-
-def ensure_nas_dirs():
-    for d in [NAS_SENSORS_DIR, NAS_TIMELAPSE_DIR, NAS_LOGS_DIR, NAS_DASHBOARD_DIR]:
-        d.mkdir(parents=True, exist_ok=True)
-
-
-def sync_sensor_data():
-    today = datetime.date.today()
-    yesterday = today - datetime.timedelta(days=1)
-    for date in [yesterday, today]:
-        src = DATA_DIR / f"sensors_{date}.csv"
-        if src.exists() and src.stat().st_size > 0:
-            shutil.copy2(src, NAS_SENSORS_DIR / src.name)
-            log.info(f"CSV synkad: {src.name}")
+# Lacasa
+LACASA_USER    = "pi"
+LACASA_HOST    = "192.168.1.129"
+LACASA_WEB     = "/var/www/happyfarmer"
+LACASA_DASH    = f"{LACASA_WEB}/dashboard"
+LACASA_SAMPLE  = f"{LACASA_DASH}/sample_data.json"
+LACASA_IMAGE   = f"{LACASA_DASH}/latest_image.jpg"
 
 
-def sync_timelapse_images():
-    images = sorted(TIMELAPSE_DIR.glob("*.jpg"))
-    if not images:
-        return
-    nas_img = NAS_TIMELAPSE_DIR / "images"
-    nas_img.mkdir(parents=True, exist_ok=True)
-    for img in images:
-        shutil.copy2(img, nas_img / img.name)
-        log.info(f"Bild synkad: {img.name}")
-        if DELETE_AFTER_UPLOAD:
-            img.unlink()
-
-
-def sync_timelapse_videos():
-    nas_vid = NAS_TIMELAPSE_DIR / "videos"
-    nas_vid.mkdir(parents=True, exist_ok=True)
-    for video in TIMELAPSE_DIR.glob("*.mp4"):
-        shutil.copy2(video, nas_vid / video.name)
-        log.info(f"Video synkad: {video.name}")
-        if DELETE_AFTER_UPLOAD:
-            video.unlink()
-
-
-def sync_log():
-    if not LOG_FILE.exists():
-        return
-    shutil.copy2(LOG_FILE, NAS_LOGS_DIR / LOG_FILE.name)
-    if LOG_FILE.stat().st_size > MAX_LOG_BYTES:
-        lines = LOG_FILE.read_text(errors="replace").splitlines()
-        LOG_FILE.write_text("
-".join(lines[-500:]) + "
-")
-        log.info("Logg roterad")
-
-
-def _read_state() -> dict:
-    """Läs state.json skriven av core/main.py efter varje loop."""
+def _scp(local: str, remote: str) -> bool:
+    """Kopiera en fil till lacasa via SCP. Returnerar True vid lyckat."""
     try:
-        state_file = DATA_DIR / "state.json"
-        if state_file.exists():
-            return json.loads(state_file.read_text())
+        result = subprocess.run(
+            ["scp", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=no",
+             local, f"{LACASA_USER}@{LACASA_HOST}:{remote}"],
+            timeout=15, capture_output=True
+        )
+        if result.returncode == 0:
+            return True
+        log.error(f"SCP misslyckades: {result.stderr.decode().strip()}")
+        return False
+    except Exception as e:
+        log.error(f"SCP fel: {e}")
+        return False
+
+
+def lacasa_is_reachable() -> bool:
+    """Kolla om lacasa svarar pa SSH."""
+    try:
+        result = subprocess.run(
+            ["ssh", "-o", "ConnectTimeout=3", "-o", "StrictHostKeyChecking=no",
+             f"{LACASA_USER}@{LACASA_HOST}", "echo OK"],
+            timeout=5, capture_output=True
+        )
+        return result.returncode == 0
     except Exception:
-        pass
-    return {}
+        return False
+
+
+def ensure_lacasa_dirs():
+    subprocess.run(
+        ["ssh", "-o", "ConnectTimeout=3",
+         f"{LACASA_USER}@{LACASA_HOST}",
+         f"mkdir -p {LACASA_DASH}"],
+        timeout=5, capture_output=True
+    )
+
+
+def sync_image():
+    """SCP latest_image.jpg till lacasa."""
+    img = BASE_DIR / "dashboard" / "latest_image.jpg"
+    if not img.exists():
+        return
+    if _scp(str(img), LACASA_IMAGE):
+        log.info("latest_image.jpg synkad till lacasa")
 
 
 def write_sample_data():
+    """Bygg sample_data.json och SCP till lacasa."""
     try:
-        state = _read_state()
+        state_file = DATA_DIR / "state.json"
+        state = {}
+        if state_file.exists():
+            try:
+                state = json.loads(state_file.read_text())
+            except Exception:
+                pass
+
         uptime_hours = 0.0
         if "start_time" in state:
             start = datetime.datetime.fromisoformat(state["start_time"])
             uptime_hours = round((datetime.datetime.now() - start).total_seconds() / 3600, 1)
+
         system_info = {
             "loop_count":        state.get("loop_count", 0),
             "sleep_minutes":     5,
@@ -107,6 +109,7 @@ def write_sample_data():
             "simulation_mode":   state.get("simulation_mode", False),
         }
         actuator_states = state.get("actuator_states")
+
         if test_connection():
             data = build_sample_data_from_db(
                 actuator_states=actuator_states,
@@ -116,19 +119,26 @@ def write_sample_data():
         else:
             data = _build_from_csv()
             log.warning("DB ej tillganglig - anvander CSV-fallback")
-        NAS_DASHBOARD_DIR.mkdir(parents=True, exist_ok=True)
-        NAS_SAMPLE_DATA.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2, default=str)
-        )
-        log.info(f"sample_data.json skriven till {NAS_SAMPLE_DATA}")
+
+        json_str = json.dumps(data, ensure_ascii=False, indent=2, default=str)
+
+        # Skriv till tempfil och SCP
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(json_str)
+            tmp_path = f.name
+
+        if _scp(tmp_path, LACASA_SAMPLE):
+            log.info(f"sample_data.json synkad till lacasa:{LACASA_SAMPLE}")
+        Path(tmp_path).unlink(missing_ok=True)
+
     except Exception as e:
         log.error(f"write_sample_data: {e}")
 
 
 def _build_from_csv():
-    now = datetime.datetime.now()
+    now   = datetime.datetime.now()
     today = datetime.date.today()
-    csv = DATA_DIR / f"sensors_{today}.csv"
+    csv   = DATA_DIR / f"sensors_{today}.csv"
     current = {
         "timestamp": now.isoformat(),
         "air_temperature_c": None, "humidity_pct": None,
@@ -161,10 +171,10 @@ def _build_from_csv():
                 })
                 r8 = rows[-8:]
                 history["air_temperature_c"] = [safe(r[1]) for r in r8]
-                history["humidity_pct"] = [safe(r[2]) for r in r8]
-                history["water_temperature_c"] = [safe(r[3]) for r in r8]
-                history["ph"] = [safe(r[4]) for r in r8]
-                history["lux"] = [safe(r[5], int) for r in r8]
+                history["humidity_pct"]       = [safe(r[2]) for r in r8]
+                history["water_temperature_c"]= [safe(r[3]) for r in r8]
+                history["ph"]                 = [safe(r[4]) for r in r8]
+                history["lux"]                = [safe(r[5], int) for r in r8]
         except Exception as e:
             log.error(f"CSV parse: {e}")
     return {
@@ -177,10 +187,10 @@ def _build_from_csv():
                    "drive_sync_last": now.isoformat(), "uptime_hours": 0.0, "simulation_mode": False},
         "pump_schedule": {"on_seconds": 1800, "off_seconds": 900, "next_cycle_in_minutes": 0, "cycles_today": 0},
         "light_schedule": {"on_hour": 6, "off_hour": 23, "light_hours": 5, "today": [
-            {"start": "06:00", "end": "11:00", "status": "done", "label": "Morgon"},
+            {"start": "06:00", "end": "11:00", "status": "done",   "label": "Morgon"},
             {"start": "11:30", "end": "12:00", "status": "active", "label": "Middag"},
-            {"start": "12:15", "end": "12:45", "status": "next", "label": "Eftermiddag"},
-            {"start": "18:00", "end": "23:00", "status": "next", "label": "Kvaell"},
+            {"start": "12:15", "end": "12:45", "status": "next",   "label": "Eftermiddag"},
+            {"start": "18:00", "end": "23:00", "status": "next",   "label": "Kvaell"},
         ]},
         "social_media": {"enabled": False, "platform": "X / Twitter", "handle": "@lemkil76",
                          "recent_posts": [], "next_post_in_loops": 0},
@@ -194,31 +204,15 @@ def _build_from_csv():
     }
 
 
-def purge_old_sensor_files(keep_days=90):
-    cutoff = datetime.date.today() - datetime.timedelta(days=keep_days)
-    for f in NAS_SENSORS_DIR.glob("sensors_*.csv"):
-        try:
-            if datetime.date.fromisoformat(f.stem.replace("sensors_", "")) < cutoff:
-                f.unlink()
-                log.info(f"Gallrad: {f.name}")
-        except Exception:
-            pass
-
-
 def main():
-    if not nas_is_mounted():
-        log.error(f"NAS ej tillganglig pa {NAS_MOUNT}")
+    if not lacasa_is_reachable():
+        log.error(f"Lacasa ej nåbar på {LACASA_HOST}")
         return
     log.info("=== cloud_sync start ===")
     try:
-        ensure_nas_dirs()
-        sync_sensor_data()
-        sync_timelapse_images()
-        sync_timelapse_videos()
-        sync_log()
+        ensure_lacasa_dirs()
         write_sample_data()
-        if datetime.datetime.now().hour == 3:
-            purge_old_sensor_files(90)
+        sync_image()
     except Exception as e:
         log.exception(f"cloud_sync fel: {e}")
     log.info("=== cloud_sync klar ===")

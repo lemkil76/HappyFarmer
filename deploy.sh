@@ -1,36 +1,53 @@
 #!/bin/bash
 # HappyFarmer - Deploy script
-# Kopierar dashboard-filer fran lokalt repo till NAS.
+# Kopierar dashboard-filer fran lokalt repo till lacasa (Pi 5).
 #
 # Kor fran repots rot:
 #   cd ~/Documents/Coding/HappyFarmer && sh deploy.sh
 
-NAS_USER="lemkil76"
-NAS_HOST="nas"
-NAS_WEB="/volume1/web/happyfarmer"
+LACASA_USER="pi"
+LACASA_HOST="lacasa"
+LACASA_WEB="/var/www/happyfarmer"
 
 echo "============================"
-echo "NAS_USER : $NAS_USER"
-echo "NAS_HOST : $NAS_HOST"
-echo "NAS_PATH : $NAS_WEB"
+echo "HOST     : $LACASA_HOST"
+echo "USER     : $LACASA_USER"
+echo "WEB_PATH : $LACASA_WEB"
 echo "============================"
 echo ""
 
-echo "Kopierar dashboard-filer till NAS via scp..."
+# Las DB-losenord fran lokal .env (aldrig i git)
+DB_PASS=""
+if [ -f "$(dirname "$0")/.env" ]; then
+  DB_PASS=$(grep '^DB_PASS=' "$(dirname "$0")/.env" | cut -d'=' -f2-)
+fi
+
+if [ -z "$DB_PASS" ]; then
+  echo "OBS: Ingen .env hittad. Ange DB_PASS manuellt:"
+  read -r -s -p "DB_PASS: " DB_PASS
+  echo ""
+fi
+
+echo "Kopierar dashboard-filer till lacasa via scp..."
 echo ""
 
-# dashboard.html -> NAS-roten (http://nas:8080/dashboard.html)
-scp -O dashboard/dashboard.html lemkil76@192.168.1.100:$NAS_WEB/dashboard.html
+# Skapa mappstruktur pa lacasa
+ssh "$LACASA_USER@$LACASA_HOST" "mkdir -p $LACASA_WEB/api $LACASA_WEB/dashboard"
 
-# Assets (sample_data.json) -> dashboard/-mappen
-scp -O dashboard/sample_data.json lemkil76@192.168.1.100:$NAS_WEB/dashboard/sample_data.json
+# dashboard.html -> webbrot
+scp dashboard/dashboard.html "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard.html"
 
-# PHP live-API -> api/-mappen
-ssh lemkil76@192.168.1.100 "mkdir -p $NAS_WEB/api"
-scp -O dashboard/api/data.php      lemkil76@192.168.1.100:$NAS_WEB/api/data.php
-scp -O dashboard/api/settings.php  lemkil76@192.168.1.100:$NAS_WEB/api/settings.php
-scp -O dashboard/api/log_event.php lemkil76@192.168.1.100:$NAS_WEB/api/log_event.php
-scp -O dashboard/api/admin_redirect.php lemkil76@192.168.1.100:$NAS_WEB/api/admin_redirect.php
+# admin.html -> webbrot
+scp dashboard/admin.html "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/admin.html"
+
+# Assets
+scp dashboard/sample_data.json "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard/sample_data.json"
+
+# PHP live-API
+scp dashboard/api/data.php          "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/data.php"
+scp dashboard/api/settings.php      "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/settings.php"
+scp dashboard/api/log_event.php     "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/log_event.php"
+scp dashboard/api/admin_redirect.php "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/admin_redirect.php"
 
 if [ $? -ne 0 ]; then
   echo ""
@@ -38,23 +55,17 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Injicera DB-lösenord i PHP-filer direkt efter kopiering
-# Lösenordet läses ur secrets.py på Pi (aldrig i git)
-DB_PASS=$(ssh -o ConnectTimeout=5 pi@192.168.1.128 "cd /home/pi/happyfarmer && python3 -c \"from config.secrets import DB_PASS; print(DB_PASS)\" 2>/dev/null")
-if [ -n "$DB_PASS" ]; then
-  ssh lemkil76@192.168.1.100 "
-    sed -i \"s/define('DB_PASS', '');/define('DB_PASS', '$DB_PASS');/\" $NAS_WEB/api/data.php
-    sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $NAS_WEB/api/settings.php
-    sed -i \"s/define('DB_PASS',    '');/define('DB_PASS',    '$DB_PASS');/\" $NAS_WEB/api/log_event.php
-    sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $NAS_WEB/api/admin_redirect.php
-  "
-  echo "DB-lösenord injicerat automatiskt."
-else
-  echo "OBS: Kunde inte hämta DB_PASS – sätt det manuellt i api/data.php och api/settings.php på NAS."
-fi
+# Injicera DB-losenord i PHP-filer pa lacasa
+ssh "$LACASA_USER@$LACASA_HOST" "
+  sed -i \"s/define('DB_PASS', '');/define('DB_PASS', '$DB_PASS');/\" $LACASA_WEB/api/data.php
+  sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $LACASA_WEB/api/settings.php
+  sed -i \"s/define('DB_PASS',    '');/define('DB_PASS',    '$DB_PASS');/\" $LACASA_WEB/api/log_event.php
+  sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $LACASA_WEB/api/admin_redirect.php
+"
+echo "DB-losenord injicerat."
 
 echo ""
 echo "Deploy klar!"
-echo "Dashboard : http://$NAS_HOST:8080/dashboard.html"
-echo "Live API  : http://$NAS_HOST:8080/api/data.php"
-echo "Inställn. : http://$NAS_HOST:8080/api/settings.php"
+echo "Dashboard : http://$LACASA_HOST:8080/dashboard.html"
+echo "Admin     : http://$LACASA_HOST:8080/admin.html"
+echo "Live API  : http://$LACASA_HOST:8080/api/data.php"

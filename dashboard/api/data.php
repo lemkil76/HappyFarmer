@@ -18,11 +18,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 
 // ── Databasinställningar ────────────────────────────────────────────────────
 define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3307');
+define('DB_PORT', '3306');
 define('DB_NAME', 'happyfarmer');
 define('DB_USER', 'happyfarmer');
 define('DB_PASS', '');   // ← Fyll i på NAS. Aldrig i git.
-define('MYSQL_BIN', '/usr/local/mariadb10/bin/mysql');
+define('MYSQL_BIN', '/usr/bin/mysql');
 
 // ── DB-konnektivitetstest ────────────────────────────────────────────────────
 $db_test = shell_exec(sprintf(

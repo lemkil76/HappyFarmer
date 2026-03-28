@@ -13,11 +13,11 @@ header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 
 define('DB_HOST',   '127.0.0.1');
-define('DB_PORT',   '3307');
+define('DB_PORT',   '3306');
 define('DB_NAME',   'happyfarmer');
 define('DB_USER',   'happyfarmer');
 define('DB_PASS',   '');   // ← Injiceras av deploy.sh
-define('MYSQL_BIN', '/usr/local/mariadb10/bin/mysql');
+define('MYSQL_BIN', '/usr/bin/mysql');
 
 // Använd Pi:ns IP direkt + curl via shell_exec
 // --connect-timeout 2: max 2 sek att etablera TCP
@@ -25,12 +25,13 @@ define('MYSQL_BIN', '/usr/local/mariadb10/bin/mysql');
 $http_code = trim((string) shell_exec(
     'curl -s -o /dev/null -w "%{http_code}"'
     . ' --connect-timeout 2 --max-time 3'
-    . ' http://192.168.1.128:5000/api/status 2>/dev/null'
+    . ' http://192.168.1.129:5000/api/status 2>/dev/null'
 ));
-$reachable = ($http_code === '200');
+// 200 = OK, 401 = kräver inloggning – båda betyder att Flask svarar
+$reachable = ($http_code !== '' && $http_code !== '000');
 
 if ($reachable) {
-    header('Location: http://rasp:5000/admin');
+    header('Location: http://lacasa:5000/admin');
     exit;
 }
 

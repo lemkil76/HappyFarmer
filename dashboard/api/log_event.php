@@ -23,11 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 define('DB_HOST',    '127.0.0.1');
-define('DB_PORT',    '3307');
+define('DB_PORT',    '3306');
 define('DB_NAME',    'happyfarmer');
 define('DB_USER',    'happyfarmer');
 define('DB_PASS',    '');   // ← Injiceras av deploy.sh
-define('MYSQL_BIN',  '/usr/local/mariadb10/bin/mysql');
+define('MYSQL_BIN',  '/usr/bin/mysql');
 
 $body = json_decode(file_get_contents('php://input'), true);
 if (!$body) {
