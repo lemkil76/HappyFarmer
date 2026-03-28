@@ -54,7 +54,6 @@ def capture_image(hires: bool = False):
                         "-d", CAMERA_DEVICE,
                         "-r", res,
                         "--no-banner",
-                        "--skip", "1",
                         str(path)],
                         check=True, capture_output=True,
                         )
