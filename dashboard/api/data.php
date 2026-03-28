@@ -30,7 +30,7 @@ function db_query($sql) {
     $db   = escapeshellarg(DB_NAME);
     $sql_e = escapeshellarg($sql);
     $cmd  = sprintf(
-        '%s -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
+        'timeout 5 %s --connect-timeout=3 -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, $sql_e
     );
     $output = shell_exec($cmd);
@@ -38,7 +38,7 @@ function db_query($sql) {
 
     // Hämta kolumnnamn med en SHOW-fråga
     $col_cmd = sprintf(
-        '%s -h %s -P %s -u %s -p%s %s --batch -e %s 2>/dev/null',
+        'timeout 5 %s --connect-timeout=3 -h %s -P %s -u %s -p%s %s --batch -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME,
         escapeshellarg($sql . ' LIMIT 0')
     );
@@ -65,7 +65,7 @@ function db_query($sql) {
 // ── Enklare funktion för frågor med känd kolumnlista ───────────────────────
 function db_query_cols($sql, $columns) {
     $cmd = sprintf(
-        '%s -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
+        'timeout 5 %s --connect-timeout=3 -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME,
         escapeshellarg($sql)
     );

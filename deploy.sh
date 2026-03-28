@@ -27,8 +27,10 @@ scp -O dashboard/sample_data.json lemkil76@192.168.1.100:$NAS_WEB/dashboard/samp
 
 # PHP live-API -> api/-mappen
 ssh lemkil76@192.168.1.100 "mkdir -p $NAS_WEB/api"
-scp -O dashboard/api/data.php     lemkil76@192.168.1.100:$NAS_WEB/api/data.php
-scp -O dashboard/api/settings.php lemkil76@192.168.1.100:$NAS_WEB/api/settings.php
+scp -O dashboard/api/data.php      lemkil76@192.168.1.100:$NAS_WEB/api/data.php
+scp -O dashboard/api/settings.php  lemkil76@192.168.1.100:$NAS_WEB/api/settings.php
+scp -O dashboard/api/log_event.php lemkil76@192.168.1.100:$NAS_WEB/api/log_event.php
+scp -O dashboard/api/admin_redirect.php lemkil76@192.168.1.100:$NAS_WEB/api/admin_redirect.php
 
 if [ $? -ne 0 ]; then
   echo ""
@@ -38,11 +40,13 @@ fi
 
 # Injicera DB-lösenord i PHP-filer direkt efter kopiering
 # Lösenordet läses ur secrets.py på Pi (aldrig i git)
-DB_PASS=$(ssh pi@192.168.1.128 "cd /home/pi/happyfarmer && python3 -c \"from config.secrets import DB_PASS; print(DB_PASS)\" 2>/dev/null")
+DB_PASS=$(ssh -o ConnectTimeout=5 pi@192.168.1.128 "cd /home/pi/happyfarmer && python3 -c \"from config.secrets import DB_PASS; print(DB_PASS)\" 2>/dev/null")
 if [ -n "$DB_PASS" ]; then
   ssh lemkil76@192.168.1.100 "
     sed -i \"s/define('DB_PASS', '');/define('DB_PASS', '$DB_PASS');/\" $NAS_WEB/api/data.php
     sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $NAS_WEB/api/settings.php
+    sed -i \"s/define('DB_PASS',    '');/define('DB_PASS',    '$DB_PASS');/\" $NAS_WEB/api/log_event.php
+    sed -i \"s/define('DB_PASS',   '');/define('DB_PASS',   '$DB_PASS');/\" $NAS_WEB/api/admin_redirect.php
   "
   echo "DB-lösenord injicerat automatiskt."
 else
