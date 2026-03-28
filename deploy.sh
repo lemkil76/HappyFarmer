@@ -41,7 +41,8 @@ scp dashboard/dashboard.html "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard.ht
 scp dashboard/admin.html "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/admin.html"
 
 # Assets
-scp dashboard/sample_data.json "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard/sample_data.json"
+scp dashboard/sample_data.json  "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard/sample_data.json"
+scp dashboard/sample_image.jpg  "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/dashboard/sample_image.jpg"
 
 # PHP live-API
 scp dashboard/api/data.php          "$LACASA_USER@$LACASA_HOST:$LACASA_WEB/api/data.php"

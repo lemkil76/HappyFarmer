@@ -689,8 +689,10 @@ function render(d) {
     <div class="card span2">
       <div class="card-label"><i class="fa-solid fa-camera"></i> Senaste bild</div>
       <div style="width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border)">
-        <img src="dashboard/latest_image.jpg?t=${Date.now()}"
-          style="width:100%;height:100%;object-fit:cover;display:block">
+        <img src="${_demoMode ? 'dashboard/sample_image.jpg' : 'dashboard/latest_image.jpg?t='+Date.now()}"
+          style="width:100%;height:100%;object-fit:cover;display:block"
+          onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;gap:8px\'><i class=\'fa-solid fa-image-slash\'></i> Ingen bild tillgänglig</div>'"
+        >
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px">
         <i class="fa-regular fa-clock"></i>
