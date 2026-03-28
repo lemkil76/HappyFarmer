@@ -1388,7 +1388,7 @@
         showToast('Bild tagen!', 'ok');
         const wrap = document.getElementById('camera-preview-wrap');
         const img  = document.getElementById('camera-preview');
-        img.src = getWebRoot() + 'dashboard/latest_image.jpg?t=' + Date.now();
+        img.src = FLASK_API_BASE + '/api/latest-image?t=' + Date.now();
         wrap.style.display = 'block';
       } else {
         res_el.className = 'save-result err-msg';

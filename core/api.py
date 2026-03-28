@@ -264,14 +264,26 @@ try:
             return jsonify({"error": "Kamerafunktion ej registrerad"}), 503
         result = _camera_fn()
         if result:
-            # Synka bilden synkront – bilden finns på lacasa när svaret skickas
-            try:
-                from integrations.cloud_sync import sync_image
-                sync_image()
-            except Exception as e:
-                log.warning(f"Bildsynk efter kamera misslyckades: {e}")
+            # Synka bilden till lacasa i bakgrunden (för dashboard.html + cron)
+            def _sync():
+                try:
+                    from integrations.cloud_sync import sync_image
+                    sync_image()
+                except Exception as e:
+                    log.warning(f"Bildsynk efter kamera misslyckades: {e}")
+            threading.Thread(target=_sync, daemon=True, name="CameraSync").start()
             return jsonify({"ok": True, "file": str(result)})
         return jsonify({"error": "Kameran misslyckades – kontrollera anslutningen"}), 500
+
+    @_app.route("/api/latest-image")
+    @_auth_required
+    def _latest_image():
+        """Serverar latest_image.jpg direkt från RASP – ingen SCP-fördröjning."""
+        img_path = Path(__file__).parent.parent / "dashboard" / "latest_image.jpg"
+        if not img_path.exists():
+            return jsonify({"error": "Ingen bild tillgänglig"}), 404
+        return send_file(str(img_path), mimetype="image/jpeg",
+                         max_age=0, conditional=False)
 
     # ── Schema ─────────────────────────────────────────────────────────────────
 
