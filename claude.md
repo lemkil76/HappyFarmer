@@ -1,6 +1,6 @@
 # Hemma Techstack – Projektöversikt
 
-> Uppdaterad: 2026-03-27 (rev 5)
+> Uppdaterad: 2026-03-29 (rev 6)
 
 ---
 
@@ -20,8 +20,9 @@ Primärspråk: **Python**. Serverkörning: **Bare metal** (ingen Docker).
 | Enhet | Modell | Roll |
 |---|---|---|
 | MacBook Air | – | Huvudutvecklingsmaskin |
-| Raspberry Pi 4 | Model B | HappyFarmer hub (192.168.1.128) |
-| Synology NAS | DS211+ | Filserver + webbserver (192.168.1.100) |
+| Raspberry Pi 4 | Model B | HappyFarmer hub – GPIO, sensorer, kamera, Flask API (192.168.1.128) |
+| Raspberry Pi 5 | Model B 8GB | lacasa – Nginx, MariaDB, PHP, webbserver (192.168.1.129) |
+| Synology NAS | DS211+ | Filserver / e-post (192.168.1.100) – ej längre webbserver |
 | Raspberry Pi Zero | – | Reserv / ej tilldelad |
 | Raspberry Pi 3 | Model B x2 | Reserv / ej tilldelad |
 | Arduino Uno | x2 | Sensorer, aktorer, hårdvaruprojekt |
@@ -55,22 +56,46 @@ Primärspråk: **Python**. Serverkörning: **Bare metal** (ingen Docker).
 
 ## 4. HappyFarmer – Aktiv Installation
 
-HappyFarmer är ett automatiserat vertical farming-system på Raspberry Pi 4.
+HappyFarmer är ett automatiserat vertical farming-system på Raspberry Pi 4 (RASP) med Raspberry Pi 5 (lacasa) som webbserver.
 
 ### Nätverksinfo
 
 | Enhet | IP | Åtkomst |
 |---|---|---|
-| Raspberry Pi 4 | 192.168.1.128 | `ssh pi@192.168.1.128` |
-| Synology NAS | 192.168.1.100 | `ssh admin@nas` / `http://nas:5000` |
-| Dashboard | – | `http://nas:8080/dashboard/dashboard_wireframe.html` |
-| Raspberry Pi 4 | 192.168.1.128 | Fast IP (konfigurerad via nmcli) |
+| Raspberry Pi 4 (RASP) | 192.168.1.128 | `ssh pi@192.168.1.128` |
+| Raspberry Pi 5 (lacasa) | 192.168.1.129 | `ssh pi@lacasa` |
+| Dashboard | – | `https://lemkil76.duckdns.org/happyfarmer/` |
+| Admin | – | `https://lemkil76.duckdns.org/happyfarmer/admin.html` |
+| Landningssida | – | `https://lemkil76.duckdns.org/` |
 
+### Arkitektur
+
+```
+Browser
+  └── Nginx (lacasa:443, HTTPS, Duck DNS + Let's Encrypt)
+        ├── /happyfarmer/         → PHP + static files (port 8080)
+        ├── /happyfarmer/api/*    → Flask API proxy → RASP:5000
+        └── /                    → Landningssida (/var/www/html/)
+
+RASP (Pi 4)
+  ├── core/main.py        – Huvudloop, GPIO, sensorer, kamera, timelapse
+  ├── core/api.py         – Flask REST API (port 5000, ej exponerad externt)
+  └── integrations/
+        ├── db.py         – MariaDB på lacasa (192.168.1.129:3306)
+        └── cloud_sync.py – SCP latest_image.jpg + relay_states.json → lacasa
+
+lacasa (Pi 5)
+  ├── Nginx               – Reverse proxy + statiska filer
+  ├── MariaDB 11          – Port 3306, databas: happyfarmer
+  ├── PHP 8.4-FPM         – data.php, settings.php, log_event.php
+  └── /var/www/happyfarmer/ – Dashboard, admin, API-filer
+```
 
 ### Repo
 ```
 GitHub: https://github.com/lemkil76/HappyFarmer
-Pi:     /home/pi/happyfarmer
+RASP:   /home/pi/happyfarmer
+lacasa: /home/pi/happyfarmer
 Mac:    ~/Documents/Coding/HappyFarmer
 ```
 
@@ -78,60 +103,59 @@ Mac:    ~/Documents/Coding/HappyFarmer
 ```
 HappyFarmer/
 ├── config/
-│   ├── paths.py              # BASE_DIR + NAS_MOUNT = enda ändringspunkterna
+│   ├── paths.py              # BASE_DIR = enda ändringspunkten
 │   └── secrets.example.py
 ├── core/
 │   ├── main.py               # Huvudloop
+│   ├── api.py                # Flask REST API
 │   ├── sensors.py            # DHT22, DS18B20, pH, MCP3008, reläer
 │   └── test_sensors.py       # Terminalbaserat testprogram
 ├── integrations/
-│   ├── db.py                 # MariaDB-integration
-│   ├── cloud_sync.py         # NAS-synk + skriver sample_data.json
-│   └── social_media.py       # X/Twitter (SOCIAL_ENABLED=False)
+│   ├── db.py                 # MariaDB-integration (lacasa)
+│   ├── cloud_sync.py         # SCP-synk till lacasa
+│   └── social_media.py       # X/Twitter
 ├── dashboard/
-│   ├── dashboard_wireframe.html
-│   ├── sample_data.json
-│   └── latest_image.jpg
+│   ├── dashboard.html
+│   ├── admin.html
+│   ├── api/
+│   │   ├── data.php
+│   │   ├── settings.php
+│   │   └── log_event.php
+│   └── sample_data.json
 ├── docs/
 │   ├── SETUP.md
 │   └── happyfarmer_schema.sql
-├── deploy.sh                 # scp -O -r dashboard/ till NAS
+├── deploy.sh                 # Deployer dashboard/ till lacasa via SCP + git pull
 └── CLAUDE.md
 ```
 
 ### Viktiga kommandon
 ```bash
-# Från Mac
+# Från Mac – deploya
 cd ~/Documents/Coding/HappyFarmer && git pull && sh deploy.sh
 
-# SSH till Pi
-ssh pi@192.168.1.128
+# SSH
+ssh pi@192.168.1.128   # RASP (Pi 4)
+ssh pi@lacasa          # lacasa (Pi 5)
 
-# På Pi
+# På RASP
 cd /home/pi/happyfarmer
 git pull
 python3 -m integrations.db          # testa DB-anslutning
-python3 -m integrations.cloud_sync  # synka till NAS
+python3 -m integrations.cloud_sync  # synka till lacasa
 python3 -m core.test_sensors        # testa sensorer
 python3 -m core.main                # starta huvudprogrammet
 
-# SSH till NAS
-ssh admin@nas
-/usr/local/mariadb10/bin/mysql -u root -p   # port 3307
+# På lacasa – MariaDB
+sudo mysql happyfarmer
+mysql -u happyfarmer -phappyfarmer happyfarmer   # från LAN
+
+# Nginx
+sudo nginx -t && sudo systemctl reload nginx
+sudo tail -f /var/log/nginx/error.log
 ```
 
-### NAS-konfiguration
-
-| Tjänst | Detalj |
-|---|---|
-| MariaDB | Port 3307, TCP aktiverat, användare `happyfarmer@%` |
-| SMB | Vers 1.0 (DS211+ stöder bara SMB1) |
-| NAS-mount på Pi | `//192.168.1.100/web` → `/mnt/nas/web` via `/etc/fstab` |
-| Web root på NAS | `/volume1/web/happyfarmer/` |
-| Dashboard URL | `http://nas:8080/dashboard/` |
-| Deploy | `scp -O -r dashboard/ lemkil76@nas:/volume1/web/happyfarmer/dashboard/` |
-
-### Cron på Pi
+### Cron på RASP
 ```
 */15 * * * * cd /home/pi/happyfarmer && python3 -m integrations.cloud_sync
 @reboot sleep 30 && cd /home/pi/happyfarmer && python3 -m core.main
@@ -150,17 +174,17 @@ ssh admin@nas
 
 ---
 
-## 5. Synology DS211+ – Tjänster
+## 5. lacasa (Pi 5) – Tjänster
 
 | Tjänst | Version | Syfte |
 |---|---|---|
-| MariaDB 10 | 10.3.29 | Databas för HappyFarmer (port 3307) |
-| Apache HTTP | 2.4 + PHP 7.0 | HappyFarmer webbapp (port 8080) |
-| Synology Mail Server | 1.7.1 | E-postserver |
-| SMB | vers 1.0 | Fildelning (Pi + Mac) |
+| Nginx | 1.26 | Reverse proxy + statisk webbserver |
+| MariaDB | 11.x | Databas för HappyFarmer (port 3306) |
+| PHP-FPM | 8.4 | Live data API, inställningar |
+| Certbot | – | Let's Encrypt TLS-certifikat |
+| UFW | – | Brandvägg: 22/80/443 öppna, 5000 blockerad, 3306 LAN-only |
 
-> DS211+ kör kernel 2.6.32, ARM 32-bit, 256 MB RAM.
-> Extern åtkomst: `http://lemkil76.synology.me:8080` (router → NAS port 8080, Synology DDNS)
+> Extern åtkomst: `https://lemkil76.duckdns.org` (Duck DNS + Let's Encrypt)
 
 ---
 
@@ -200,7 +224,6 @@ message = client.messages.create(
 
 - SSH-nycklar istället för lösenord
 - Separata VLAN begränsar skadeyta
-- Synology Hyper Backup för NAS-data
 - GitHub för all kod
 - Time Machine → NAS (SMB)
 
@@ -211,9 +234,11 @@ message = client.messages.create(
 - [x] Koppla in sensorer och testa med `python3 -m core.test_sensors`
 - [x] Aktivera I2C, SPI, 1-Wire via `sudo raspi-config`
 - [x] Installera kamera och testa timelapse
-- [x] Konfigurera Twitter/X API (`SOCIAL_ENABLED=True`)
+- [x] Konfigurera Twitter/X API
 - [x] Starta `python3 -m core.main` + cron för autostart
-- [x] Port forwarding för extern åtkomst – `http://lemkil76.synology.me:8080`
+- [x] Migrera till lacasa (Pi 5) – Nginx, MariaDB, PHP, HTTPS
+- [x] Duck DNS + Let's Encrypt – `https://lemkil76.duckdns.org`
+- [x] Admin-panel med token-autentisering via Nginx
 
 ---
 
@@ -222,8 +247,9 @@ message = client.messages.create(
 - [ ] VLAN-segmentering i routern (kräver VLAN-kapabel router, t.ex. UniFi/pfSense)
 - [ ] SMHI/YR.no väderdata på dashboard
 - [ ] Timelapse-visning på dashboard
-- [ ] Ny Pi inomhus med Gunicorn + Nginx som ersätter NAS som webbserver
-- [ ] Extern åtkomst till admin-panel (Pi port 5000, idag bara lokalt)
+- [ ] DHT22 lufttemperatur-fix (GPIO 4, "Unable to set line 17 to input")
+- [ ] Säkerhetskopia av timelapse-bilder från RASP till lacasa
+- [ ] Garage Opener-projekt
 
 ---
 
