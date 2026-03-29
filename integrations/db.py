@@ -3,7 +3,7 @@ HappyFarmer - MariaDB Integration
 integrations/db.py
 Revised by Claude - 2026-03-26
 
-All databaskommunikation mot MariaDB pa NAS:en.
+All databaskommunikation mot MariaDB pa lacasa.
 Importeras av core/main.py och integrations/cloud_sync.py.
 
 Install:
@@ -33,7 +33,7 @@ except ImportError:
 try:
     from config.secrets import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS
 except ImportError:
-    DB_HOST, DB_PORT, DB_NAME = "nas", 3306, "happyfarmer"
+    DB_HOST, DB_PORT, DB_NAME = "192.168.1.129", 3306, "happyfarmer"
     DB_USER, DB_PASS = "happyfarmer", ""
 
 
@@ -177,7 +177,6 @@ def log_actuator_event(
 
 def log_timelapse_image(
     filename, image_type="lowres", resolution="640x480",
-    nas_path=None, synced=False,
 ) -> bool:
     conn = get_connection()
     if not conn:
@@ -185,9 +184,9 @@ def log_timelapse_image(
     try:
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO timelapse_images (filename, type, resolution, nas_path, synced) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            (filename, image_type, resolution, nas_path, 1 if synced else 0),
+            "INSERT INTO timelapse_images (filename, type, resolution) "
+            "VALUES (%s, %s, %s)",
+            (filename, image_type, resolution),
         )
         conn.commit()
         return True
@@ -198,24 +197,8 @@ def log_timelapse_image(
         conn.close()
 
 
-def mark_image_synced(filename: str) -> bool:
-    conn = get_connection()
-    if not conn:
-        return False
-    try:
-        cur = conn.cursor()
-        cur.execute("UPDATE timelapse_images SET synced=1 WHERE filename=%s", (filename,))
-        conn.commit()
-        return True
-    except Exception as e:
-        log.error(f"DB mark_synced: {e}")
-        return False
-    finally:
-        conn.close()
-
-
 def log_timelapse_video(
-    filename, nas_path=None, period_from=None, period_to=None, frame_count=None
+    filename, period_from=None, period_to=None, frame_count=None
 ) -> bool:
     conn = get_connection()
     if not conn:
@@ -223,9 +206,9 @@ def log_timelapse_video(
     try:
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO timelapse_videos (filename, nas_path, period_from, period_to, frame_count) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            (filename, nas_path, period_from, period_to, frame_count),
+            "INSERT INTO timelapse_videos (filename, period_from, period_to, frame_count) "
+            "VALUES (%s, %s, %s, %s)",
+            (filename, period_from, period_to, frame_count),
         )
         conn.commit()
         return True
