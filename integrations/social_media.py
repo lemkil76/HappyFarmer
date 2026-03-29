@@ -9,18 +9,14 @@ Set env vars - see docs/SETUP.md step 4.
 Install: pip install tweepy
 """
 
-import os
 import tweepy
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# ── Credentials from environment variables ────────────────────────────────────
-BEARER_TOKEN  = os.environ.get("HAPPYFARMER_BEARER_TOKEN")
-API_KEY       = os.environ.get("HAPPYFARMER_API_KEY")
-API_SECRET    = os.environ.get("HAPPYFARMER_API_SECRET")
-ACCESS_TOKEN  = os.environ.get("HAPPYFARMER_ACCESS_TOKEN")
-ACCESS_SECRET = os.environ.get("HAPPYFARMER_ACCESS_SECRET")
+from config.secrets import (
+    TWITTER_BEARER_TOKEN  as BEARER_TOKEN,
+    TWITTER_API_KEY       as API_KEY,
+    TWITTER_API_SECRET    as API_SECRET,
+    TWITTER_ACCESS_TOKEN  as ACCESS_TOKEN,
+    TWITTER_ACCESS_SECRET as ACCESS_SECRET,
+)
 
 # ── Client (API v2) ────────────────────────────────────────────────────────────
 client = tweepy.Client(
