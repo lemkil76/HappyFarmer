@@ -28,7 +28,7 @@ define('DB_PASS',   '');   // ← Injiceras av deploy.sh
 
 function db_run($sql) {
     $cmd = sprintf(
-        '%s -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
+        '%s -h %s -P %s -u %s -p%s --default-character-set=utf8mb4 %s --batch --skip-column-names -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME,
         escapeshellarg($sql)
     );

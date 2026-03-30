@@ -26,7 +26,7 @@ define('MYSQL_BIN', '/usr/bin/mysql');
 
 // ── DB-konnektivitetstest ────────────────────────────────────────────────────
 $db_test = shell_exec(sprintf(
-    'timeout 3 %s --connect-timeout=2 -h %s -P %s -u %s -p%s %s -e "SELECT 1" 2>/dev/null',
+    'timeout 3 %s --connect-timeout=2 --default-character-set=utf8mb4 -h %s -P %s -u %s -p%s %s -e "SELECT 1" 2>/dev/null',
     MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME
 ));
 if (empty(trim((string)$db_test))) {
@@ -41,7 +41,7 @@ function db_query($sql) {
     $db   = escapeshellarg(DB_NAME);
     $sql_e = escapeshellarg($sql);
     $cmd  = sprintf(
-        'timeout 5 %s --connect-timeout=3 -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
+        'timeout 5 %s --connect-timeout=3 --default-character-set=utf8mb4 -h %s -P %s -u %s -p%s %s --batch --skip-column-names -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME, $sql_e
     );
     $output = shell_exec($cmd);
@@ -49,7 +49,7 @@ function db_query($sql) {
 
     // Hämta kolumnnamn med en SHOW-fråga
     $col_cmd = sprintf(
-        'timeout 5 %s --connect-timeout=3 -h %s -P %s -u %s -p%s %s --batch -e %s 2>/dev/null',
+        'timeout 5 %s --connect-timeout=3 --default-character-set=utf8mb4 -h %s -P %s -u %s -p%s %s --batch -e %s 2>/dev/null',
         MYSQL_BIN, DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME,
         escapeshellarg($sql . ' LIMIT 0')
     );
