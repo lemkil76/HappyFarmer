@@ -530,8 +530,8 @@ function weatherCard() {
     </div>`;
   }
 
-  const maxWind   = Math.max(...hours.map(h => h.wind ?? 0));
-  const maxPrecip = Math.max(...hours.map(h => h.precip ?? 0));
+  const maxWind   = Math.max(...hours.filter(h => !h.past).map(h => h.wind ?? 0));
+  const maxPrecip = Math.max(...hours.filter(h => !h.past).map(h => h.precip ?? 0));
   const windWarn  = maxWind   > 10;
   const rainWarn  = maxPrecip > 0.5;
 
@@ -554,6 +554,17 @@ function weatherCard() {
 
   const rows = hours.map(h => {
     const time = h.time.getHours().toString().padStart(2,'0') + ':00';
+    if (h.past) {
+      return `<div class="weather-hour" style="opacity:0.35">
+        <span class="wh-time" style="color:var(--muted)">${time}</span>
+        <span class="wh-icon" style="opacity:0.4">–</span>
+        <span class="wh-temp" style="color:var(--muted)">–</span>
+        <span></span>
+        <span class="wh-wind"   style="color:var(--muted)">–</span>
+        <span class="wh-precip" style="color:var(--muted)">–</span>
+        <span class="wh-uv"     style="color:var(--muted)">–</span>
+      </div>`;
+    }
     const wCol = h.wind > 10 ? 'var(--amber)' : h.wind > 7 ? 'var(--text)' : 'var(--muted)';
     const pCol = h.precip > 0.5 ? 'var(--blue)' : 'var(--muted)';
     const uCol = uvColor(h.uv);
@@ -613,30 +624,40 @@ async function loadWeatherData() {
     if (!wr.ok) throw new Error('HTTP ' + wr.status);
     const wdata = await wr.json();
 
-    const now   = new Date();
+    const now     = new Date();
     const DAY_START = 7;
     const DAY_END   = 20;
-    // Om klockan är efter 20:00 – visa imorgon, annars idag
+    // Om klockan är 20:00 eller senare – visa imorgon, annars idag
     const targetDate = new Date(now);
     if (now.getHours() >= DAY_END) targetDate.setDate(targetDate.getDate() + 1);
     const targetDay = targetDate.toDateString();
 
     const sunTimes = getSunTimes(loc.lat, loc.lon, targetDate);
-    const hours = [];
+
+    // Bygg en map av SMHI-data per timme
+    const smhiByHour = {};
     for (const ts of wdata.timeSeries) {
       const t = new Date(ts.validTime);
-      const h = t.getHours();
       if (t.toDateString() !== targetDay) continue;
+      const h = t.getHours();
       if (h < DAY_START || h > DAY_END) continue;
       const get = n => { const p = ts.parameters.find(p => p.name === n); return p ? p.values[0] : null; };
-      hours.push({
-        time:   t,
+      smhiByHour[h] = {
         temp:   get('t'),
         wind:   get('ws'),
         precip: get('pmean') ?? 0,
         sym:    wsymb2ToKey(get('Wsymb2')),
         uv:     uvFromSymAndTime(get('Wsymb2'), h, sunTimes),
-      });
+      };
+    }
+
+    // Bygg full 07–20 grid – platshållare för förflutna timmar utan SMHI-data
+    const hours = [];
+    for (let h = DAY_START; h <= DAY_END; h++) {
+      const t = new Date(targetDate);
+      t.setHours(h, 0, 0, 0);
+      const data = smhiByHour[h] || null;
+      hours.push({ time: t, past: data === null, ...(data || {}) });
     }
     _smhiData = hours;
     _smhiTime = new Date();
