@@ -575,8 +575,9 @@ function weatherCard() {
 
   return `<div id="weather-card-wrap" class="card">
     <div class="card-label">
-      <i class="fa-solid fa-cloud-sun"></i> Prognos 12h
+      <i class="fa-solid fa-cloud-sun"></i> Prognos 07–20
       <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">${city}</span>
+      <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:6px">${new Date().getHours() >= 20 ? '· imorgon' : '· idag'}</span>
     </div>
     ${alert}
     <div class="weather-hours">${header}${rows}</div>
@@ -613,24 +614,28 @@ async function loadWeatherData() {
     const wdata = await wr.json();
 
     const now   = new Date();
-    // Beräkna soluppgång/solnedgång för platsen (approximation)
-    const sunTimes = getSunTimes(loc.lat, loc.lon, now);
+    const DAY_START = 7;
+    const DAY_END   = 20;
+    // Om klockan är efter 20:00 – visa imorgon, annars idag
+    const targetDate = new Date(now);
+    if (now.getHours() >= DAY_END) targetDate.setDate(targetDate.getDate() + 1);
+    const targetDay = targetDate.toDateString();
+
+    const sunTimes = getSunTimes(loc.lat, loc.lon, targetDate);
     const hours = [];
     for (const ts of wdata.timeSeries) {
       const t = new Date(ts.validTime);
-      if (t < now) continue;
-      if (hours.length >= 24) break;
-      const get = n => { const p = ts.parameters.find(p => p.name === n); return p ? p.values[0] : null; };
       const h = t.getHours();
-      // Visa bara timmar mellan soluppgång och solnedgång
-      if (h < sunTimes.rise || h > sunTimes.set) continue;
+      if (t.toDateString() !== targetDay) continue;
+      if (h < DAY_START || h > DAY_END) continue;
+      const get = n => { const p = ts.parameters.find(p => p.name === n); return p ? p.values[0] : null; };
       hours.push({
         time:   t,
         temp:   get('t'),
         wind:   get('ws'),
         precip: get('pmean') ?? 0,
         sym:    wsymb2ToKey(get('Wsymb2')),
-        uv:     get('msl') !== null ? uvFromSymAndTime(get('Wsymb2'), h, sunTimes) : null,
+        uv:     uvFromSymAndTime(get('Wsymb2'), h, sunTimes),
       });
     }
     _smhiData = hours;
