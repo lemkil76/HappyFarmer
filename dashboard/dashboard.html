@@ -133,21 +133,33 @@ body {
 /* ── Väderprognos ───────────────────────────────────────────────────────────── */
 .weather-hours { display: flex; flex-direction: column; margin-top: 6px; }
 
+.weather-hour-header {
+  display: grid;
+  grid-template-columns: 36px 22px 32px 1fr 44px 44px 44px;
+  gap: 4px;
+  padding: 0 0 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
 .weather-hour {
   display: grid;
-  grid-template-columns: 34px 20px 28px 1fr 38px;
+  grid-template-columns: 36px 22px 32px 1fr 44px 44px 44px;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   padding: 4px 0;
   border-bottom: 1px solid var(--border);
   font-size: 12px;
 }
 .weather-hour:last-child { border-bottom: none; }
 .wh-time   { color: var(--muted); font-size: 11px; }
-.wh-icon   { text-align: center; font-size: 13px; }
+.wh-icon   { text-align: center; font-size: 16px; }
 .wh-temp   { font-weight: 600; color: var(--text); }
 .wh-wind   { font-size: 11px; text-align: right; }
 .wh-precip { font-size: 11px; text-align: right; }
+.wh-uv     { font-size: 11px; text-align: right; }
 
 .wx-alert {
   display: flex; align-items: center; gap: 6px;
@@ -423,6 +435,46 @@ function pillLabel(status) {
   return '<i class="fa-solid fa-clock"></i> Nästa';
 }
 
+// ── Väderprognos – hjälpfunktioner ───────────────────────────────────────────
+
+function getSunTimes(lat, lon, date) {
+  // Enkel approximation av soluppgång/solnedgång (±30 min precision)
+  const J = Math.PI / 180;
+  const d = (date - new Date(date.getFullYear(), 0, 0)) / 86400000;
+  const declination = -23.45 * Math.cos(J * (360 / 365) * (d + 10));
+  const cosH = (Math.sin(J * -0.83) - Math.sin(J * lat) * Math.sin(J * declination))
+             / (Math.cos(J * lat) * Math.cos(J * declination));
+  if (cosH < -1) return { rise: 0,  set: 23 }; // midnattssol
+  if (cosH >  1) return { rise: 12, set: 12 }; // polarnatt
+  const H = Math.acos(cosH) / J;
+  const eqTime = 9.87 * Math.sin(J * 2 * (360/365) * (d - 81))
+               - 7.53 * Math.cos(J * (360/365) * (d - 81))
+               - 1.5  * Math.sin(J * (360/365) * (d - 81));
+  const offset = lon / 15 + eqTime / 60;
+  return {
+    rise: Math.round(12 - H / 15 - offset),
+    set:  Math.round(12 + H / 15 - offset),
+  };
+}
+
+function uvFromSymAndTime(wsymb2, hour, sunTimes) {
+  // Grov UV-uppskattning baserad på vädertyp och tid på dagen
+  if (!sunTimes || hour < sunTimes.rise || hour > sunTimes.set) return 0;
+  const sym = wsymb2 ?? 6;
+  const noon = (sunTimes.rise + sunTimes.set) / 2;
+  const solarFactor = Math.max(0, 1 - Math.abs(hour - noon) / ((sunTimes.set - sunTimes.rise) / 2));
+  const cloudFactor = sym <= 2 ? 1.0 : sym <= 4 ? 0.7 : sym <= 6 ? 0.4 : 0.2;
+  return Math.round(solarFactor * cloudFactor * 8 * 10) / 10;
+}
+
+function uvColor(uv) {
+  if (uv === null || uv === undefined) return 'var(--muted)';
+  if (uv >= 6) return 'var(--red)';
+  if (uv >= 3) return 'var(--amber)';
+  if (uv >= 1) return 'var(--green)';
+  return 'var(--muted)';
+}
+
 // ── Väderprognos – SMHI OpenData ──────────────────────────────────────────────
 let _smhiData = null;   // parsed hours-array
 let _smhiCity = '';     // ortsnamn för visning
@@ -491,17 +543,29 @@ function weatherCard() {
     ? `<div class="wx-alert warn"><i class="fa-solid fa-cloud-rain"></i> Regn väntas</div>`
     : '';
 
+  const header = `<div class="weather-hour-header">
+    <span></span><span></span>
+    <span>Temp</span>
+    <span></span>
+    <span style="text-align:right">Vind</span>
+    <span style="text-align:right">Nbd</span>
+    <span style="text-align:right">UV</span>
+  </div>`;
+
   const rows = hours.map(h => {
     const time = h.time.getHours().toString().padStart(2,'0') + ':00';
     const wCol = h.wind > 10 ? 'var(--amber)' : h.wind > 7 ? 'var(--text)' : 'var(--muted)';
     const pCol = h.precip > 0.5 ? 'var(--blue)' : 'var(--muted)';
+    const uCol = uvColor(h.uv);
     const icon = SMHI_ICONS[h.sym] ?? SMHI_ICONS.cloudy;
     return `<div class="weather-hour">
       <span class="wh-time">${time}</span>
       <span class="wh-icon">${icon}</span>
       <span class="wh-temp">${h.temp !== null ? Math.round(h.temp)+'°' : '–'}</span>
-      <span class="wh-wind"  style="color:${wCol}"><i class="fa-solid fa-wind" style="font-size:9px"></i> ${h.wind !== null ? h.wind.toFixed(0) : '–'}</span>
+      <span></span>
+      <span class="wh-wind"   style="color:${wCol}"><i class="fa-solid fa-wind" style="font-size:9px"></i> ${h.wind !== null ? h.wind.toFixed(0) : '–'}</span>
       <span class="wh-precip" style="color:${pCol}">${h.precip > 0 ? h.precip.toFixed(1)+'mm' : '–'}</span>
+      <span class="wh-uv"     style="color:${uCol}">${h.uv !== null && h.uv > 0 ? h.uv.toFixed(1) : '–'}</span>
     </div>`;
   }).join('');
 
@@ -515,7 +579,7 @@ function weatherCard() {
       <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:4px">${city}</span>
     </div>
     ${alert}
-    <div class="weather-hours">${rows}</div>
+    <div class="weather-hours">${header}${rows}</div>
     <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:right">
       SMHI OpenData${updStr ? ' · uppdaterad ' + updStr : ''}
     </div>
@@ -540,7 +604,7 @@ async function loadWeatherData() {
   }
 
   if (!loc) return;
-  _smhiCity = loc.city || loc.display || '';
+  _smhiCity = loc.shortDisplay || loc.city || loc.display || '';
 
   try {
     const url = `https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${loc.lon}/lat/${loc.lat}/data.json`;
@@ -549,18 +613,24 @@ async function loadWeatherData() {
     const wdata = await wr.json();
 
     const now   = new Date();
+    // Beräkna soluppgång/solnedgång för platsen (approximation)
+    const sunTimes = getSunTimes(loc.lat, loc.lon, now);
     const hours = [];
     for (const ts of wdata.timeSeries) {
       const t = new Date(ts.validTime);
       if (t < now) continue;
-      if (hours.length >= 12) break;
+      if (hours.length >= 24) break;
       const get = n => { const p = ts.parameters.find(p => p.name === n); return p ? p.values[0] : null; };
+      const h = t.getHours();
+      // Visa bara timmar mellan soluppgång och solnedgång
+      if (h < sunTimes.rise || h > sunTimes.set) continue;
       hours.push({
         time:   t,
         temp:   get('t'),
         wind:   get('ws'),
         precip: get('pmean') ?? 0,
         sym:    wsymb2ToKey(get('Wsymb2')),
+        uv:     get('msl') !== null ? uvFromSymAndTime(get('Wsymb2'), h, sunTimes) : null,
       });
     }
     _smhiData = hours;
