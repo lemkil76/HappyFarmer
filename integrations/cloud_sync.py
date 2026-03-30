@@ -32,7 +32,7 @@ LACASA_USER    = "pi"
 LACASA_HOST    = "192.168.1.129"
 LACASA_WEB     = "/var/www/happyfarmer"
 LACASA_DASH    = f"{LACASA_WEB}/dashboard"
-LACASA_SAMPLE  = f"{LACASA_DASH}/sample_data.json"
+LACASA_CACHE   = f"{LACASA_DASH}/cache_data.json"
 LACASA_IMAGE   = f"{LACASA_DASH}/latest_image.jpg"
 
 
@@ -145,8 +145,8 @@ def write_sample_data():
             f.write(json_str)
             tmp_path = f.name
 
-        if _scp(tmp_path, LACASA_SAMPLE):
-            log.info(f"sample_data.json synkad till lacasa:{LACASA_SAMPLE}")
+        if _scp(tmp_path, LACASA_CACHE):
+            log.info(f"sample_data.json synkad till lacasa:{LACASA_CACHE}")
         Path(tmp_path).unlink(missing_ok=True)
 
     except Exception as e:

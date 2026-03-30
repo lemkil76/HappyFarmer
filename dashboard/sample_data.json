@@ -1,12 +1,11 @@
 {
-    "_comment": "HappyFarmer dashboard sample data",
+    "_comment": "HappyFarmer demo data – statisk exempelfil, ej auto-genererad",
     "_format_version": "1.0",
     "_generated": "2026-03-20T12:00:00",
     "latest_image": {
           "filename": "latest_image.jpg",
           "captured_at": "2026-03-20T12:00:00",
-          "resolution": "640x480",
-          "path_on_nas": "/web/happyfarmer/dashboard/latest_image.jpg"
+          "resolution": "640x480"
     },
     "current_readings": {
           "timestamp": "2026-03-20T12:00:00",

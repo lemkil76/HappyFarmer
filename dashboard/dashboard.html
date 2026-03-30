@@ -866,10 +866,10 @@ function render(d) {
 // ── Fetch & auto-reload ───────────────────────────────────────────────────────
 
 // Primär källa: live PHP-API (MariaDB direkt)
-// Fallback: sample_data.json (uppdateras av cloud_sync var 15:e minut)
+// Fallback: cache_data.json (uppdateras av cloud_sync var 15:e minut)
 const DATA_SOURCES = [
   'api/data.php?t=',
-  'dashboard/sample_data.json?t=',
+  'dashboard/cache_data.json?t=',
 ];
 
 // ── Demo-läge ──────────────────────────────────────────────────────────────────
