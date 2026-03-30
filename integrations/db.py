@@ -473,6 +473,48 @@ def get_system_updates(n: int = 10) -> list:
         conn.close()
 
 
+def get_schedule() -> Optional[dict]:
+    """Hämtar sparad schemainställning från settings-tabellen."""
+    conn = get_connection()
+    if not conn:
+        return None
+    try:
+        import json
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT value FROM settings WHERE key_name='schedule' LIMIT 1")
+        row = cur.fetchone()
+        if row:
+            return json.loads(row["value"])
+        return None
+    except Exception as e:
+        log.error(f"DB get_schedule: {e}")
+        return None
+    finally:
+        conn.close()
+
+
+def save_schedule(schedule: dict) -> bool:
+    """Sparar schemainställning till settings-tabellen."""
+    conn = get_connection()
+    if not conn:
+        return False
+    try:
+        import json
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO settings (key_name, value) VALUES ('schedule', %s) "
+            "ON DUPLICATE KEY UPDATE value=%s, updated_at=NOW()",
+            (json.dumps(schedule), json.dumps(schedule))
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        log.error(f"DB save_schedule: {e}")
+        return False
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     if test_connection():

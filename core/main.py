@@ -179,6 +179,7 @@ def main():
     sensors.setup()
     api.set_camera_callback(lambda: capture_image(hires=True))
     api.start()
+    api.load_schedule_from_db()
     homekit.start()
     if not db.test_connection():
         log.warning("DB ej tillganglig - fortsatter med CSV")

@@ -74,6 +74,17 @@ def get_schedule() -> dict:
     with _lock:
         return dict(_state["schedule"])
 
+def load_schedule_from_db():
+    """Laddar sparad schema från DB vid uppstart. Faller tillbaka på defaults."""
+    try:
+        saved = db.get_schedule()
+        if saved:
+            with _lock:
+                _state["schedule"].update(saved)
+            log.info(f"Schema laddat från DB: {saved}")
+    except Exception as e:
+        log.warning(f"Kunde inte ladda schema från DB: {e}")
+
 def set_camera_callback(fn):
     """Injiceras av main.py för att ge API tillgång till kamerafunktionen."""
     global _camera_fn
@@ -313,6 +324,11 @@ try:
                 _state["schedule"][field] = val
                 updated[field] = val
         log.info(f"Admin: schema uppdaterat → {updated}")
+        threading.Thread(
+            target=db.save_schedule,
+            args=(dict(_state["schedule"]),),
+            daemon=True, name="SaveSchedule"
+        ).start()
         return jsonify({"ok": True, "updated": updated,
                         "schedule": dict(_state["schedule"])})
 
