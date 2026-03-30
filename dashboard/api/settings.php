@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Bakåtkompatibelt: returnera tema
         $val   = db_get('theme');
-        $theme = in_array($val, ['dark', 'light'], true) ? $val : 'dark';
+        $theme = in_array($val, ['dark', 'light', 'grow'], true) ? $val : 'dark';
         echo json_encode(['theme' => $theme]);
     }
 }

@@ -48,6 +48,25 @@
       --radius-sm:  8px;
     }
 
+    [data-theme="grow"] {
+      --bg:         #071a09;
+      --surface:    #0b2410;
+      --surface2:   #102c14;
+      --border:     #1a3c1e;
+      --text:       #c8edc8;
+      --text-muted: #4d7a52;
+      --green:      #39d353;
+      --green-dim:  #0d2e10;
+      --red:        #ff6b6b;
+      --red-dim:    #3d1010;
+      --amber:      #f0c040;
+      --amber-dim:  #3a2800;
+      --blue:       #56c8d8;
+      --blue-dim:   #082530;
+      --radius:     12px;
+      --radius-sm:  8px;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--bg);
@@ -1071,24 +1090,31 @@
   function updateThemeIcon() {
     const btn = document.getElementById('theme-toggle');
     if (!btn) return;
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    btn.innerHTML = isDark
-      ? '<i class="fa-solid fa-sun"></i> Ljust'
-      : '<i class="fa-solid fa-moon"></i> Mörkt';
-    btn.title = isDark ? 'Byt till ljust tema' : 'Byt till mörkt tema';
+    const theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'dark') {
+      btn.innerHTML = '<i class="fa-solid fa-sun"></i> Ljust';
+      btn.title = 'Byt till ljust tema';
+    } else if (theme === 'light') {
+      btn.innerHTML = '<i class="fa-solid fa-seedling"></i> Grow';
+      btn.title = 'Byt till Grow-tema';
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-moon"></i> Mörkt';
+      btn.title = 'Byt till mörkt tema';
+    }
   }
 
   async function toggleTheme() {
-    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : current === 'light' ? 'grow' : 'dark';
     applyTheme(next);
     updateThemeIcon();
     try {
       await fetch(SETTINGS_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ theme: next }),
+        body:    JSON.stringify({ key: 'theme', value: next }),
       });
-    } catch (e) { /* NAS ej nåbar – lokalt tema redan sparat */ }
+    } catch (e) { /* DB ej nåbar – lokalt tema redan sparat */ }
   }
 
   // ── Demo-läge ──────────────────────────────────────────────────────────────
