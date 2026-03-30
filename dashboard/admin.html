@@ -1444,7 +1444,8 @@
           return `<div class="location-item" onclick="selectLocation(${i})"
             data-lat="${lat}" data-lon="${lon}"
             data-name="${r.display_name.replace(/"/g,'&quot;')}"
-            data-city="${parts[0].trim().replace(/"/g,'&quot;')}">
+            data-city="${parts[0].trim().replace(/"/g,'&quot;')}"
+            data-municipality="${(parts[1]||'').trim().replace(/"/g,'&quot;')}">
             <i class="fa-solid fa-location-dot" style="color:var(--blue);flex-shrink:0;margin-top:2px"></i>
             <div>
               <div>${label}</div>
@@ -1466,11 +1467,16 @@
     document.querySelectorAll('.location-item').forEach(el => el.classList.remove('selected'));
     const item = document.querySelectorAll('.location-item')[idx];
     item.classList.add('selected');
+    const city  = item.dataset.city;
+    const muni  = item.dataset.municipality;
+    const short = muni ? `${city}, ${muni}` : city;
     selectedLocation = {
-      lat:     parseFloat(item.dataset.lat),
-      lon:     parseFloat(item.dataset.lon),
-      city:    item.dataset.city,
-      display: item.dataset.name,
+      lat:          parseFloat(item.dataset.lat),
+      lon:          parseFloat(item.dataset.lon),
+      city:         city,
+      municipality: muni,
+      shortDisplay: short,
+      display:      item.dataset.name,
     };
     document.getElementById('location-save-btn').style.display = 'flex';
   }
@@ -1490,15 +1496,15 @@
       });
       const data = await res.json();
       if (res.ok && data.ok) {
-        document.getElementById('location-name').textContent = selectedLocation.city;
+        document.getElementById('location-name').textContent = selectedLocation.shortDisplay;
         document.getElementById('location-wrap').classList.remove('open');
         document.getElementById('location-results').innerHTML = '';
         document.getElementById('location-search').value = '';
         btn.style.display = 'none';
         result.className = 'save-result ok-msg';
-        result.innerHTML = `<i class="fa-solid fa-circle-check"></i> &nbsp;${selectedLocation.city} sparad`;
+        result.innerHTML = `<i class="fa-solid fa-circle-check"></i> &nbsp;${selectedLocation.shortDisplay} sparad`;
         result.style.display = 'block';
-        showToast('Ort sparad: ' + selectedLocation.city, 'ok');
+        showToast('Ort sparad: ' + selectedLocation.shortDisplay, 'ok');
         selectedLocation = null;
       } else {
         throw new Error(data.error || 'Fel');
@@ -1526,7 +1532,7 @@
       const data = await res.json();
       if (data.value) {
         const loc = JSON.parse(data.value);
-        document.getElementById('location-name').textContent = loc.city || loc.display || 'Okänd';
+        document.getElementById('location-name').textContent = loc.shortDisplay || loc.city || loc.display || 'Okänd';
       }
     } catch { /* tyst – NAS kanske ej nåbar */ }
   }
