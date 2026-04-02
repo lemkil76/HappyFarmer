@@ -114,7 +114,7 @@ def read_air_temperature() -> float | None:
     if not HW_AVAILABLE:
         return 22.5  # simulation
 
-    dht_device = adafruit_dht.DHT22(board.D4)
+    dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
     temperature = dht_device.temperature
     dht_device.exit()
     if temperature is None:
@@ -131,7 +131,7 @@ def read_humidity() -> float | None:
     if not HW_AVAILABLE:
         return 64.0  # simulation
 
-    dht_device = adafruit_dht.DHT22(board.D4)
+    dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
     humidity = dht_device.humidity
     dht_device.exit()
     if humidity is None:
@@ -150,7 +150,7 @@ def read_air_climate() -> tuple[float | None, float | None]:
         return 22.5, 64.0  # simulation
 
     try:
-        dht_device = adafruit_dht.DHT22(board.D4)
+        dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
         temperature = dht_device.temperature
         humidity = dht_device.humidity
         dht_device.exit()
