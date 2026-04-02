@@ -7,7 +7,7 @@ All hardware operations live here. core/main.py imports and calls these
 functions — keeping the main loop clean and this module independently testable.
 
 Sensors:
-  - DHT22     Air temperature + humidity          GPIO 4  (1-Wire)
+  - DHT22     Air temperature + humidity          GPIO 4  (adafruit_dht)
   - DS18B20   Water temperature                   GPIO 17 (1-Wire sysfs)
   - Atlas EZO-pH  pH via I2C                      I2C bus
   - MCP3008   Photoresistor (lux) via SPI ADC     SPI
@@ -39,8 +39,8 @@ except ImportError:
     HW_AVAILABLE = False
 
 # ── Pin map (BCM numbering) ────────────────────────────────────────────────────
-PIN_DHT22        = 17   # Air temp + humidity (DHT22)
-PIN_WATER_TEMP   = 4  # DS18B20 data (1-Wire kernel driver)
+PIN_DHT22        = 4    # Air temp + humidity (DHT22)
+PIN_WATER_TEMP   = 17  # DS18B20 data (1-Wire kernel driver)
 PIN_PUMP_RELAY   = 22  # Water pump    (active-low relay)
 PIN_LIGHT_RELAY  = 23  # Grow lights   (active-low relay)
 PIN_FAN_RELAY    = 24  # Cooling fan   (active-low relay)
@@ -114,7 +114,7 @@ def read_air_temperature() -> float | None:
     if not HW_AVAILABLE:
         return 22.5  # simulation
 
-    dht_device = adafruit_dht.DHT11(board.D17)
+    dht_device = adafruit_dht.DHT22(board.D4)
     temperature = dht_device.temperature
     dht_device.exit()
     if temperature is None:
@@ -131,7 +131,7 @@ def read_humidity() -> float | None:
     if not HW_AVAILABLE:
         return 64.0  # simulation
 
-    dht_device = adafruit_dht.DHT11(board.D17)
+    dht_device = adafruit_dht.DHT22(board.D4)
     humidity = dht_device.humidity
     dht_device.exit()
     if humidity is None:
@@ -150,15 +150,15 @@ def read_air_climate() -> tuple[float | None, float | None]:
         return 22.5, 64.0  # simulation
 
     try:
-        dht_device = adafruit_dht.DHT11(board.D17)
+        dht_device = adafruit_dht.DHT22(board.D4)
         temperature = dht_device.temperature
         humidity = dht_device.humidity
         dht_device.exit()
     except Exception as e:
-        log.error(f"DHT11 combined read failed: {e}")
+        log.error(f"DHT22 combined read failed: {e}")
         return None, None
     if temperature is None or humidity is None:
-        log.error("DHT11: combined read returned None")
+        log.error("DHT22: combined read returned None")
         return None, None
     return round(temperature, 1), round(humidity, 1)
 
