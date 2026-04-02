@@ -39,8 +39,8 @@ except ImportError:
     HW_AVAILABLE = False
 
 # ── Pin map (BCM numbering) ────────────────────────────────────────────────────
-PIN_DHT22        = 4    # Air temp + humidity (DHT22)
-PIN_WATER_TEMP   = 17  # DS18B20 data (1-Wire kernel driver)
+PIN_DHT22        = 17  # Air temp + humidity (DHT22)
+PIN_WATER_TEMP   = 4   # DS18B20 data (1-Wire kernel driver, default GPIO4)
 PIN_PUMP_RELAY   = 22  # Water pump    (active-low relay)
 PIN_LIGHT_RELAY  = 23  # Grow lights   (active-low relay)
 PIN_FAN_RELAY    = 24  # Cooling fan   (active-low relay)
@@ -118,7 +118,7 @@ def read_air_climate() -> tuple[float | None, float | None]:
 
     for attempt in range(3):
         try:
-            dht_device = adafruit_dht.DHT22(board.D4)
+            dht_device = adafruit_dht.DHT22(board.D17)
             temperature = dht_device.temperature
             humidity    = dht_device.humidity
             dht_device.exit()
