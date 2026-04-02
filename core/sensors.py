@@ -106,61 +106,31 @@ def _relay_state(pin: int) -> bool:
 # Sensor: Air temperature + humidity (DHT22)
 # ==============================================================================
 
-def read_air_temperature() -> float | None:
-    """
-    Read air temperature from DHT22.
-    Returns temperature in Celsius, or None on failure.
-    """
-    if not HW_AVAILABLE:
-        return 22.5  # simulation
-
-    dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
-    temperature = dht_device.temperature
-    dht_device.exit()
-    if temperature is None:
-        log.error("DHT22: temperature read failed")
-        return None
-    return round(temperature, 1)
-
-
-def read_humidity() -> float | None:
-    """
-    Read relative humidity from DHT22.
-    Returns humidity as percentage (0-100), or None on failure.
-    """
-    if not HW_AVAILABLE:
-        return 64.0  # simulation
-
-    dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
-    humidity = dht_device.humidity
-    dht_device.exit()
-    if humidity is None:
-        log.error("DHT22: humidity read failed")
-        return None
-    return round(humidity, 1)
-
 
 def read_air_climate() -> tuple[float | None, float | None]:
     """
-    Read both air temperature and humidity from DHT22 in one call
-    (avoids two separate sensor reads).
+    Read both air temperature and humidity from DHT22 in one call.
+    Retries up to 3 times – DHT22 often fails on first attempt.
     Returns (temperature_C, humidity_pct).
     """
     if not HW_AVAILABLE:
         return 22.5, 64.0  # simulation
 
-    try:
-        dht_device = adafruit_dht.DHT22(board.D4, use_pulseio=False)
-        temperature = dht_device.temperature
-        humidity = dht_device.humidity
-        dht_device.exit()
-    except Exception as e:
-        log.error(f"DHT22 combined read failed: {e}")
-        return None, None
-    if temperature is None or humidity is None:
-        log.error("DHT22: combined read returned None")
-        return None, None
-    return round(temperature, 1), round(humidity, 1)
+    for attempt in range(3):
+        try:
+            dht_device = adafruit_dht.DHT22(board.D4)
+            temperature = dht_device.temperature
+            humidity    = dht_device.humidity
+            dht_device.exit()
+            if temperature is not None and humidity is not None:
+                return round(temperature, 1), round(humidity, 1)
+            log.warning(f"DHT22: read returned None (attempt {attempt+1}/3)")
+        except Exception as e:
+            log.warning(f"DHT22: attempt {attempt+1}/3 failed: {e}")
+        time.sleep(2)
+
+    log.error("DHT22: all 3 attempts failed")
+    return None, None
 
 
 # ==============================================================================
